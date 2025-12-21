@@ -1,0 +1,85 @@
+<div class="wrapper relative">
+  <div class="container mx-auto">
+    @for (nominee of displayedNominees; track nominee.id; let i = $index) {
+      <section class="flex justify-center flex-col p-5" #sectionRef>
+        <div class="flex justify-center mb-8">
+          <figure class="flex-none mr-8 w-32 h-32 rounded-2xl overflow-hidden border-4 border-amber-600">
+            <img src="{{nominee.image}}" width="128" height="128" alt="" />
+          </figure>
+          <div class="uppercase flex flex-col justify-center" [ngStyle]="{
+          color: '#FFE4B5',
+          textShadow: '0 0 7px #FFB732,0 0 10px #FFB732,0 0 21px #FFB732,0 0 42px #FFB732,0 0 82px #FFB732,0 0 92px #FFB732,0 0 102px #FFB732,0 0 151px #FFB732'
+  }">
+            <h2 class="text-7xl backdrop-blur">{{nominee.title}}</h2>
+
+            @if (user?.admin) {
+              <p class="text-3xl">Сосисок: {{nominee.users?.length}}</p>
+            }
+          </div>
+        </div>
+        <ul class="flex flex-wrap items-center justify-center gap-11">
+          @for(candidate of nominee.candidates; track candidate.id) {
+            <li class="relative" [ngClass]="{
+            'bg-amber-600': user?.votes?.[nominee.id] === candidate.id && !user?.presenterMode,
+            'hover:shadow-2xl hover:shadow-amber-600 duration-200 hover:scale-110': nominee.canVote
+          }">
+              @if (nominee.showWinner && candidate.winner) {
+                <img src="/2-min.png" width="128" height="128" class="-top-8 -left-8 absolute" alt="winner" />
+              }
+              <button [disabled]="!user || !nominee.canVote || user.votes[nominee.id] === candidate.id" class="w-64 flex flex-col h-full border-4 border-orange-500 rounded-2xl overflow-hidden" (click)="vote(nominee, candidate, auth?.uid ?? '', i)">
+                <img src="{{candidate.image}}" alt="placeholder" class="max-w-64 h-64" />
+                <div class="flex-grow uppercase max-w-64 p-3 text-orange-200 backdrop-blur w-full">
+                  {{candidate.name}}<br/>
+                  @if (user?.admin) {
+                    Сосисок: {{candidate.users?.length ?? 0}}
+                  }
+                </div>
+              </button>
+            </li>
+          }
+        </ul>
+        @if (user?.admin) {
+          <button (click)="toggleWinner(nominee)" class="px-10 py-2 bg-sky-600 my-2 text-orange-300 hover:bg-sky-700">
+            {{nominee.showWinner ? 'Скрыть' : 'Показать'}} победителя
+          </button>
+          <button (click)="toggleVote(nominee)" class="px-10 py-2 bg-sky-600 my-2 text-orange-300 hover:bg-sky-700">
+            {{nominee.canVote ? 'Закрыть' : 'Открыть'}} голосование
+          </button>
+        }
+      </section>
+    } @empty {
+      <div class="text-9xl text-center my-10 text-amber-300 backdrop-blur-xl p-3">Жарим сосисочки... Подождите</div>
+    }
+    @if (displayedNominees.length) {
+      <section class="flex justify-center flex-col p-5 text-5xl text-orange-300 snap-always">
+        <div class="backdrop-blur-lg p-3">
+          Спасибо за голосование!
+        </div>
+        <button (click)="top()" class="mt-5 px-5 py-3 bg-orange-500 text-sky-200 rounded-lg hover:bg-orange-700">
+          Вернуться в начало
+        </button>
+      </section>
+
+      <section class="flex justify-center flex-col p-7 text-5xl text-orange-300 snap-always">
+        <div class="backdrop-blur-lg p-3">
+          ВСЕ, НЕ КРУТИ ЕБАТЬ,<br/>
+          ЭТО КОНЕЦ<br/>
+          Спасибо, до свидания.
+        </div>
+        <button (click)="top()" class="mt-5 px-5 py-3 bg-orange-500 text-sky-200 rounded-lg hover:bg-orange-700">
+          Вернуться в начало
+        </button>
+      </section>
+
+      <section class="flex justify-center flex-col p-7 text-5xl text-orange-300 snap-always">
+        <div class="backdrop-blur-lg p-3">
+          Сука кому сказали не крути,<br/>
+          Дальше некуда уже, докрутился блять, все сломал
+        </div>
+        <button (click)="top()" class="mt-5 px-5 py-3 bg-orange-500 text-sky-200 rounded-lg hover:bg-orange-700">
+          Вернуться в начало
+        </button>
+      </section>
+    }
+  </div>
+</div>

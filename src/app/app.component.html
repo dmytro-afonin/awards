@@ -1,0 +1,187 @@
+<div class="h-full flex flex-col">
+  <header class="relative h-20 lg:h-24">
+  <div class="fixed top-0 left-0 z-50 w-full flex items-center justify-between px-5 md:px-14 lg:px-5 xl:px-16 2xl:px-20 bg-opacity-0 backdrop-blur-sm">
+    <div class="flex items-center justify-between w-full mx-auto py-5 lg:py-6 lg:justify-between">
+      <div class="flex items-center xl:gap-8 lg:gap-4 text-amber-100 drop-shadow-2xl">
+        <a href="/" class="hover:opacity-70">
+          <img src="/2-min.png" alt="tga-logo" width="44" height="40">
+        </a>
+        <div class="lg:flex items-center justify-start hidden">
+          <nav class="hidden ml-0 relative md:mr-16 lg:mr-0 lg:block" aria-label="nav">
+            <ul class="flex gap-3 lg:gap-4 xl:gap-6 2xl:gap-11">
+              @for (item of menuItems; track item.route) {
+                <li>
+                  <app-link [route]="item.route" [title]="item.title" />
+                </li>
+              }
+              @if (userData?.admin) {
+                @if (!userData?.presenterMode) {
+                  <li><button (click)="createData()">Create data</button></li>
+                }
+                <li>
+                  <button (click)="togglePresenterMode()">
+                    {{userData?.presenterMode ? 'Выключить': 'Включить'}} режим презентации
+                  </button>
+                </li>
+              }
+            </ul>
+          </nav>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-x-16">
+        <div>
+          @if (user) {
+            <div class="flex items-center outline-0 transition-all hover:color-slate-200">
+              <span class="hidden lg:inline transition font-bold text-16 tracking-160 leading-tight duration-500 ease-in-out whitespace-nowrap uppercase" [ngStyle]="{
+                 color: '#ADD8E6',
+                 textShadow: ' 0 0 7px #0ea5e9,0 0 10px #0ea5e9,0 0 21px #0ea5e9,0 0 42px #0ea5e9,0 0 82px #0ea5e9,0 0 92px #0ea5e9,0 0 102px #0ea5e9,0 0 151px #0ea5e9'
+                }">
+                {{user.displayName}}
+              </span>
+            </div>
+          } @else {
+            <button type="button" class="lg:mr-0 flex justify-center" (click)="signIn()">
+              <div class="flex items-center outline-0 transition-all hover:color-slate-200">
+                <span class="hidden lg:inline transition font-bold text-16 tracking-160 leading-tight pr-10 hover:opacity-70 duration-500 ease-in-out whitespace-nowrap" [ngStyle]="{
+                 color: '#ADD8E6',
+                 textShadow: ' 0 0 7px #0ea5e9,0 0 10px #0ea5e9,0 0 21px #0ea5e9,0 0 42px #0ea5e9,0 0 82px #0ea5e9,0 0 92px #0ea5e9,0 0 102px #0ea5e9,0 0 151px #0ea5e9'
+                }">
+                  SIGN IN
+                </span>
+                <figure class="w-6">
+                  <img ngSrc="/login_icon_2024.svg" alt="sign in" width="24" height="24" class="w-6 h-6">
+                </figure>
+              </div>
+            </button>
+          }
+        </div>
+        <button (click)="mobileNav.classList.replace('opacity-0', 'opacity-1');mobileNav.classList.replace('translate-x-[-100%]', 'translate-x-0');" class="flex items-center justify-center z-40 h-10 w-8 lg:hidden cursor-pointer">
+          <span class="absolute inline-block overflow-hidden w-[32px] h-[18px]">
+            <span class="absolute top-0 right-0 block w-full bg-white h-[2.5px] rounded-3xl"></span>
+            <span class="absolute block w-full bg-white h-[2.5px] rounded-3xl"></span>
+            <span class="absolute bottom-0 right-0 block w-[70%] bg-white h-[2.7px] rounded-3xl left-0"></span>
+          </span>
+          <span class="absolute inline-block">
+            <span class="absolute block w-0 bg-white rounded-xl"></span>
+            <span class="absolute block w-0 bg-white rounded-xl"></span>
+          </span>
+        </button>
+        <div #mobileNav class="fixed top-0 left-0 z-30 h-dvh overflow-hidden opacity-0 max-w-full w-full xs:w-96 bg-slate-800 lg:hidden translate-x-[-100%] transition-all duration-300">
+          <div class="flex flex-col justify-between h-full overflow-scroll pb-40">
+            <div class="mx-auto mt-105 h-full">
+              <nav class="flex flex-col" aria-label="menu">
+                <ul class="flex-1 overflow-y-scroll overflow-x-visible">
+                  @for (item of menuItems; track item.route) {
+                    <li class="mb-4">
+                      <app-link [route]="item.route" [title]="item.title" />
+                    </li>
+                  }
+                </ul>
+                <div class="flex flex-col items-start justify-start w-full">
+                  <div class="w-full h-1 mt-35 mb-40 overflow-hidden bg-blue_line"></div>
+                  <div class="flex flex-col items-start justify-start w-full">
+                    <p class="font-bold tracking-1 leading-[1.9] uppercase text-20 mx-auto mb-20">Follow Us</p>
+                    <div class="w-fit mx-auto max-w-full">
+                      <div class="w-full">
+                        <div class="regular slider social_icon_slider xl:flex xl:gap-20 xl:flex-wrap">
+                          <div>
+                            <a href="https://twitter.com/thegameawards" target="_blank" rel="noreferrer" title="X/thegameawards" class="border border-gold hover:bg-gold [&amp;_path]:hover:fill-[#0a0e13] focus:bg-gold [&amp;_path]:focus:fill-[#0a0e13]">
+                              <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3.0424 4.50977L9.75648 13.4993L3 20.8082H4.52061L10.4359 14.4092L15.2153 20.8082H20.39L13.2982 11.313L19.587 4.50977H18.0664L12.6187 10.4032L8.2171 4.50977H3.0424ZM5.27857 5.63137H7.65584L18.1535 19.6864H15.7762L5.27857 5.63137Z" fill="#FF9F59"></path>
+                              </svg>
+                            </a>
+                          </div>
+                          <div>
+                            <a href="https://www.facebook.com/thegameawards" target="_blank" rel="noreferrer" title="facebook/thegameawards" class="border border-gold hover:bg-gold [&amp;_path]:hover:fill-[#0a0e13] focus:bg-gold [&amp;_path]:focus:fill-[#0a0e13]">
+                              <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18.7091 3.50977H5.29091C4.68332 3.50977 4.10062 3.75113 3.67099 4.18076C3.24136 4.61039 3 5.19309 3 5.80067V19.2189C3 19.8264 3.24136 20.4091 3.67099 20.8388C4.10062 21.2684 4.68332 21.5098 5.29091 21.5098H11.8638V14.0203H10.3659V11.0245H11.8514V9.67067C11.8514 8.44537 12.4351 6.53107 15.0038 6.53107L17.3178 6.54035V9.10703H15.6373C15.3641 9.10703 14.9753 9.24309 14.9753 9.8267V11.0247H17.356L17.0827 14.0205H14.8595V21.5098H18.7091C19.0099 21.5098 19.3078 21.4505 19.5858 21.3354C19.8637 21.2203 20.1163 21.0515 20.329 20.8388C20.5417 20.626 20.7105 20.3735 20.8256 20.0955C20.9407 19.8176 21 19.5197 21 19.2189V5.80067C21 5.49983 20.9407 5.20193 20.8256 4.92398C20.7105 4.64604 20.5417 4.39349 20.329 4.18076C20.1163 3.96803 19.8637 3.79928 19.5858 3.68415C19.3078 3.56902 19.0099 3.50977 18.7091 3.50977Z" fill="#FF9F59"></path>
+                              </svg>
+                            </a>
+                          </div>
+                          <div>
+                            <a href="https://www.instagram.com/thegameawards/" target="_blank" rel="noreferrer" title="Instagram/thegameawards" class="instagram__fill border border-gold hover:bg-gold [&amp;_path]:hover:fill-none [&amp;_path]:hover:stroke-[#0a0e13] focus:bg-gold [&amp;_path]:focus:fill-none [&amp;_path]:focus:stroke-[#0a0e13]">
+                              <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16.5 4H7.5C5.01472 4 3 6.01472 3 8.5V17.5C3 19.9853 5.01472 22 7.5 22H16.5C18.9853 22 21 19.9853 21 17.5V8.5C21 6.01472 18.9853 4 16.5 4Z" stroke="#FF9F59" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M15.6 12.433C15.7111 13.182 15.5832 13.947 15.2344 14.6191C14.8857 15.2913 14.3339 15.8363 13.6575 16.1767C12.9811 16.5172 12.2146 16.6357 11.467 16.5154C10.7194 16.3951 10.0288 16.0421 9.49338 15.5067C8.95795 14.9712 8.60499 14.2806 8.48469 13.533C8.36439 12.7854 8.48289 12.0189 8.82332 11.3426C9.16376 10.6662 9.7088 10.1144 10.3809 9.76564C11.053 9.4169 11.818 9.28896 12.567 9.40003C13.3311 9.51332 14.0384 9.86934 14.5846 10.4155C15.1307 10.9617 15.4867 11.669 15.6 12.433Z" stroke="#FF9F59" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M16.95 8.05005H16.96" stroke="#FF9F59" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                              </svg>
+                            </a>
+                          </div>
+                          <div>
+                            <a href="https://www.tiktok.com/@thegameawards?_t=8WXW4Og28Z4&amp;_r=1" target="_blank" rel="noreferrer" title="tiktok/thegameawards" class="border border-gold hover:bg-gold [&amp;_path]:hover:fill-[#0a0e13] focus:bg-gold [&amp;_path]:focus:fill-[#0a0e13]">
+                              <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19.8059 8.01672C18.7771 8.01672 17.8278 7.67588 17.0655 7.10089C16.1912 6.44175 15.5631 5.47487 15.3412 4.36045C15.2863 4.08511 15.2567 3.80096 15.2539 3.50977H12.3149V11.5406L12.3114 15.9395C12.3114 17.1155 11.5455 18.1126 10.4839 18.4633C10.1758 18.5651 9.8431 18.6133 9.49663 18.5943C9.05438 18.57 8.63996 18.4366 8.27975 18.2211C7.51322 17.7627 6.99351 16.931 6.97942 15.9796C6.95724 14.4926 8.15933 13.2803 9.64522 13.2803C9.93852 13.2803 10.2202 13.3282 10.4839 13.4152V11.2202V10.4311C10.2058 10.3899 9.92268 10.3684 9.63642 10.3684C8.01004 10.3684 6.48894 11.0445 5.40164 12.2624C4.57982 13.1828 4.08687 14.3571 4.01082 15.5884C3.91117 17.206 4.50306 18.7436 5.65093 19.8781C5.81959 20.0447 5.9967 20.1992 6.1819 20.3418C7.16604 21.0992 8.36919 21.5098 9.63642 21.5098C9.92268 21.5098 10.2058 21.4886 10.4839 21.4474C11.6677 21.2721 12.7599 20.7302 13.6219 19.8781C14.681 18.8313 15.2662 17.4415 15.2726 15.9623L15.2574 9.39345C15.7627 9.78323 16.3152 10.1058 16.9081 10.3561C17.8303 10.7452 18.8081 10.9424 19.8144 10.942V8.8079V8.01602C19.8151 8.01672 19.8066 8.01672 19.8059 8.01672Z" fill="#FF9F59"></path>
+                              </svg>
+                            </a>
+                          </div>
+                          <div>
+                            <a href="https://discordapp.com/invite/thegameawards" target="_blank" rel="noreferrer" title="discord/thegameawards" class="border border-gold hover:bg-gold [&amp;_path]:hover:fill-[#0a0e13] focus:bg-gold [&amp;_path]:focus:fill-[#0a0e13]">
+                              <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <g clip-path="url(#clip0_3434_19136)">
+                                  <path d="M19.9913 5.00188C18.4862 4.31128 16.8722 3.80244 15.1845 3.51099C15.1538 3.50536 15.1231 3.51943 15.1073 3.54752C14.8997 3.91674 14.6698 4.39836 14.5087 4.77694C12.6936 4.50518 10.8878 4.50518 9.10993 4.77694C8.94887 4.38996 8.7106 3.91674 8.50207 3.54752C8.48625 3.52035 8.45553 3.50628 8.42482 3.51099C6.73817 3.80147 5.12413 4.31031 3.61801 5.00188C3.60496 5.00751 3.59379 5.01687 3.58637 5.02905C0.524874 9.60289 -0.313836 14.0643 0.097586 18.4704C0.0994309 18.4919 0.111561 18.5126 0.128304 18.5257C2.14819 20.009 4.10484 20.9096 6.0251 21.5065C6.05582 21.5159 6.08838 21.5046 6.10794 21.4793C6.56216 20.859 6.96708 20.2049 7.31425 19.5171C7.33473 19.4768 7.31518 19.429 7.2733 19.4131C6.63103 19.1695 6.01947 18.8724 5.43117 18.5351C5.38463 18.5079 5.3809 18.4414 5.42374 18.4095C5.54754 18.3167 5.67138 18.2202 5.7896 18.1227C5.811 18.1049 5.84079 18.1012 5.86593 18.1124C9.73071 19.8769 13.9148 19.8769 17.734 18.1124C17.7591 18.1002 17.7889 18.104 17.8112 18.1218C17.9295 18.2192 18.0533 18.3167 18.178 18.4094C18.2208 18.4413 18.218 18.5079 18.1715 18.535C17.5832 18.8789 16.9716 19.1694 16.3284 19.4121C16.2866 19.428 16.2679 19.4768 16.2885 19.517C16.6431 20.2039 17.048 20.858 17.4939 21.4784C17.5125 21.5046 17.546 21.5159 17.5767 21.5064C19.5063 20.9096 21.4629 20.009 23.4828 18.5256C23.5005 18.5125 23.5117 18.4928 23.5135 18.4713C24.0059 13.3774 22.6888 8.9525 20.022 5.02993C20.0155 5.01687 20.0044 5.00751 19.9913 5.00188ZM7.89149 15.7875C6.72793 15.7875 5.76916 14.7193 5.76916 13.4074C5.76916 12.0954 6.7093 11.0272 7.89149 11.0272C9.08291 11.0272 10.0324 12.1049 10.0138 13.4074C10.0138 14.7193 9.07359 15.7875 7.89149 15.7875ZM15.7383 15.7875C14.5748 15.7875 13.6161 14.7193 13.6161 13.4074C13.6161 12.0954 14.5562 11.0272 15.7383 11.0272C16.9298 11.0272 17.8793 12.1049 17.8607 13.4074C17.8607 14.7193 16.9299 15.7875 15.7383 15.7875Z" fill="#FF9F59"></path>
+                                </g>
+                                <defs>
+                                  <clipPath id="clip0_3434_19136">
+                                    <rect width="24" height="24" fill="white" transform="translate(0 0.509766)"></rect>
+                                  </clipPath>
+                                </defs>
+                              </svg>
+                            </a>
+                          </div>
+                          <div>
+                            <a href="https://www.youtube.com/thegameawards" target="_blank" rel="noreferrer" title="YouTube/thegameawards" class="border border-gold hover:bg-gold [&amp;_path]:hover:fill-[#0a0e13] focus:bg-gold [&amp;_path]:focus:fill-[#0a0e13]">
+                              <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21.134 7.87219C20.9119 7.04617 20.2606 6.39502 19.4347 6.1726C17.9259 5.75977 11.8904 5.75977 11.8904 5.75977C11.8904 5.75977 5.85525 5.75977 4.34642 6.15695C3.5364 6.37914 2.86925 7.04629 2.64707 7.87219C2.25 9.3809 2.25 12.5098 2.25 12.5098C2.25 12.5098 2.25 15.6544 2.64707 17.1473C2.86949 17.9732 3.52052 18.6244 4.34654 18.8468C5.87114 19.2598 11.8907 19.2598 11.8907 19.2598C11.8907 19.2598 17.9259 19.2598 19.4347 18.8626C20.2607 18.6403 20.9119 17.9891 21.1343 17.1632C21.5312 15.6544 21.5312 12.5257 21.5312 12.5257C21.5312 12.5257 21.5471 9.3809 21.134 7.87219ZM9.96889 15.4003V9.61921L14.9876 12.5098L9.96889 15.4003Z" fill="#FF9F59"></path>
+                              </svg>
+                            </a>
+                          </div>
+                          <div>
+                            <a href="https://www.twitch.tv/thegameawards" target="_blank" rel="noreferrer" title="twitch/thegameawards" class="border border-gold hover:bg-gold [&amp;_path]:hover:fill-[#0a0e13] focus:bg-gold [&amp;_path]:focus:fill-[#0a0e13]">
+                              <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 6.64102V19.1615H7.31175V21.5098H9.666L12.0165 19.1608H15.5453L20.2508 14.4673V3.50977H4.17525L3 6.64102ZM5.7435 5.07352H18.6825V13.6828L15.9375 16.4218H11.6243L9.27375 18.767V16.4218H5.7435V5.07352Z" fill="#FF9F59"></path>
+                                <path d="M10.0566 8.20703H11.6241V12.902H10.0566V8.20703Z" fill="#FF9F59"></path>
+                                <path d="M14.3691 8.20703H15.9374V12.902H14.3691V8.20703Z" fill="#FF9F59"></path>
+                              </svg>
+                            </a>
+                          </div>
+                          <div>
+                            <a href="https://whatsapp.com/channel/0029Vag3iQ69Gv7MHZkPYK3u" target="_blank" rel="noreferrer" class="border border-gold hover:bg-gold [&amp;_path]:hover:fill-[#0a0e13] focus:bg-gold [&amp;_path]:focus:fill-[#0a0e13]">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M7.25301 18.494L7.97701 18.917C9.19795 19.6291 10.5866 20.0029 12 20C13.5823 20 15.129 19.5308 16.4446 18.6518C17.7602 17.7727 18.7855 16.5233 19.3911 15.0615C19.9966 13.5997 20.155 11.9911 19.8463 10.4393C19.5376 8.88743 18.7757 7.46197 17.6569 6.34315C16.538 5.22433 15.1126 4.4624 13.5607 4.15372C12.0089 3.84504 10.4004 4.00346 8.93855 4.60896C7.47674 5.21447 6.22731 6.23984 5.34826 7.55544C4.46921 8.87103 4.00001 10.4177 4.00001 12C4.00001 13.436 4.37701 14.813 5.08401 16.024L5.50601 16.748L4.85301 19.149L7.25301 18.494ZM2.00401 22L3.35601 17.032C2.46515 15.5049 1.99711 13.768 2.00001 12C2.00001 6.477 6.47701 2 12 2C17.523 2 22 6.477 22 12C22 17.523 17.523 22 12 22C10.2328 22.0029 8.49667 21.5352 6.97001 20.645L2.00401 22ZM8.39101 7.308C8.52501 7.298 8.66001 7.298 8.79401 7.304C8.84801 7.308 8.90201 7.314 8.95601 7.32C9.11501 7.338 9.29001 7.435 9.34901 7.569C9.64701 8.245 9.93701 8.926 10.217 9.609C10.279 9.761 10.242 9.956 10.124 10.146C10.0429 10.2745 9.95507 10.3986 9.86101 10.518C9.74801 10.663 9.50501 10.929 9.50501 10.929C9.50501 10.929 9.40601 11.047 9.44401 11.194C9.45801 11.25 9.50401 11.331 9.54601 11.399L9.60501 11.494C9.86101 11.921 10.205 12.354 10.625 12.762C10.745 12.878 10.862 12.997 10.988 13.108C11.456 13.521 11.986 13.858 12.558 14.108L12.563 14.11C12.648 14.147 12.691 14.167 12.815 14.22C12.877 14.246 12.941 14.269 13.006 14.286C13.0732 14.3031 13.1439 14.2999 13.2093 14.2767C13.2746 14.2536 13.3316 14.2116 13.373 14.156C14.097 13.279 14.163 13.222 14.169 13.222V13.224C14.2193 13.1771 14.2791 13.1415 14.3443 13.1196C14.4095 13.0977 14.4786 13.09 14.547 13.097C14.607 13.101 14.668 13.112 14.724 13.137C15.255 13.38 16.124 13.759 16.124 13.759L16.706 14.02C16.804 14.067 16.893 14.178 16.896 14.285C16.9 14.352 16.906 14.46 16.883 14.658C16.851 14.917 16.773 15.228 16.695 15.391C16.6416 15.5022 16.5707 15.6042 16.485 15.693C16.3841 15.7989 16.2736 15.8954 16.155 15.981C16.114 16.0119 16.0723 16.0419 16.03 16.071C15.9056 16.1499 15.7778 16.2233 15.647 16.291C15.3895 16.4278 15.1052 16.5063 14.814 16.521C14.629 16.531 14.444 16.545 14.258 16.535C14.25 16.535 13.69 16.448 13.69 16.448C12.2683 16.074 10.9534 15.3735 9.85001 14.402C9.62401 14.203 9.41501 13.989 9.20101 13.776C8.31101 12.891 7.63901 11.936 7.23101 11.034C7.02218 10.5913 6.90938 10.1094 6.90001 9.62C6.89589 9.01285 7.09436 8.42167 7.46401 7.94C7.53701 7.846 7.60601 7.748 7.72501 7.635C7.85201 7.515 7.93201 7.451 8.01901 7.407C8.13469 7.34903 8.26088 7.31502 8.39001 7.307L8.39101 7.308Z" fill="#F2A366"></path>
+                              </svg>
+                            </a>
+                          </div>
+                          <div>
+                            <a href="mailto:info@thegameawards.com" target="_blank" rel="noreferrer" title="email to sosiska" class="border border-gold hover:bg-gold [&amp;_path]:hover:fill-[#0a0e13] focus:bg-gold [&amp;_path]:focus:fill-[#0a0e13]">
+                              <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M13.5043 14.2778C13.0565 14.5764 12.5363 14.7342 12 14.7342C11.4637 14.7342 10.9436 14.5764 10.4957 14.2778L3.11985 9.3604C3.07893 9.33312 3.03906 9.30468 3 9.27543V17.3331C3 18.257 3.74971 18.9902 4.65702 18.9902H19.3429C20.2668 18.9902 21 18.2404 21 17.3331V9.27539C20.9608 9.30471 20.9209 9.33322 20.8799 9.36054L13.5043 14.2778Z" fill="#FF9F59"></path>
+                                <path d="M3.70488 8.4837L11.0808 13.4011C11.36 13.5873 11.68 13.6804 12 13.6804C12.32 13.6804 12.64 13.5873 12.9192 13.4011L20.2951 8.4837C20.7365 8.18962 21 7.69743 21 7.16622C21 6.25283 20.2569 5.50977 19.3435 5.50977H4.65646C3.7431 5.5098 3 6.25286 3 7.1671C3 7.69743 3.26353 8.18962 3.70488 8.4837Z" fill="#FF9F59"></path>
+                              </svg>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="w-full pb-30">
+                      <div class="mt-40 mx-auto w-fit">
+                        <button class="glow-btn">
+                          <span class="text-shadow">Share this site</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+  <main class="flex-grow">
+    <router-outlet/>
+  </main>
+  <footer></footer>
+</div>
