@@ -56,765 +56,435 @@ export class AppComponent {
   createData(): void {
     const candidates = [
       {
-        "id": "geimkom_i_100_video",
-        "name": "Гейсмком и 100 видео пацюка которые никто не смотрел",
-        "image": "/n_1_1.jpg"
-      },
-      {
-        "id": "ze_geim_evards",
-        "name": "Зе Гейм Эвардс и астро бот.",
-        "image": "/n_1_2.jpg"
-      },
-      {
-        "id": "evrovidenie",
-        "name": "Евровидение и экспертное мнение знатоков",
-        "image": "/n_1_3.jpg"
-      },
-      {
-        "id": "boi_usika",
-        "name": "Бой Усика где Димас кричал 'Убей его нахуй'.",
-        "image": "/n_1_4.jpg"
-      },
-      {
-        "id": "parik",
-        "name": "Гарик",
-        "image": "/n_2_1.jpg"
-      },
-      {
-        "id": "persik",
-        "name": "персик",
-        "image": "/n_2_2.jpg"
-      },
-      {
-        "id": "shmelak",
-        "name": "Шрэклок",
-        "image": "/n_2_3.jpg"
-      },
-      {
-        "id": "korol_tomata",
-        "name": "кроль томата",
-        "image": "/n_2_4.jpg"
-      },
-      {
-        "id": "gerald",
-        "name": "Геральд",
-        "image": "/n_2_5.jpg"
-      },
-      {
-        "id": "luncha",
-        "name": "Лучна",
-        "image": "/n_2_6.jpg"
-      },
-      {
-        "id": "dayzi",
-        "name": "Дейзи",
-        "image": "/n_2_7.jpg"
-      },
-      {
-        "id": "tomat",
-        "name": "Томат",
-        "image": "/n_3_1.jpg"
-      },
-      {
-        "id": "turbina",
-        "name": "турбина",
-        "image": "/n_3_2.jpg"
-      },
-      {
-        "id": "tomatronus",
-        "name": "томатронус",
-        "image": "/n_3_3.jpg"
-      },
-      {
-        "id": "artem",
-        "name": "артем",
-        "image": "/n_3_4.jpg"
-      },
-      {
-        "id": "turbonasos",
-        "name": "турбонасос",
-        "image": "/n_3_5.jpg"
-      },
-      {
-        "id": "talibeius",
-        "name": "Талибанус",
-        "image": "/n_3_6.jpg"
-      },
-      {
-        "id": "muravei_na_zapupe",
-        "name": "Муравей на запупе",
-        "image": "/n_4_1.jpg"
-      },
-      {
-        "id": "bolshe_banok",
-        "name": "Больше банок с калом богу банок с калом",
-        "image": "/n_4_2.jpg"
-      },
-      {
-        "id": "pokupka_pikselya",
-        "name": "Покупка пикселя",
-        "image": "/n_4_3.jpg"
-      },
-      {
-        "id": "ander_za_veter",
-        "name": "Андер за вотер",
-        "image": "/n_4_4.jpg"
-      },
-      {
-        "id": "pobeda_nad_dadanom",
-        "name": "победа над раданом",
-        "image": "/n_4_5.jpg"
-      },
-      {
-        "id": "sloveniya1",
-        "name": "словения",
-        "image": "/n_5_1.jpg"
-      },
-      {
-        "id": "sloveniya2",
-        "name": "словения",
-        "image": "/n_5_2.jpg"
-      },
-      {
-        "id": "polsha1",
-        "name": "польша",
-        "image": "/n_5_3.jpg"
-      },
-      {
-        "id": "bolgariya1",
-        "name": "болгария",
-        "image": "/n_5_4.jpg"
-      },
-      {
-        "id": "amerika1",
-        "name": "америка",
-        "image": "/n_5_5.jpg"
-      },
-      {
-        "id": "chekia",
-        "name": "Чехия",
-        "image": "/n_6_1.jpg"
-      },
-      {
-        "id": "ukraina",
-        "name": "Украина",
-        "image": "/n_6_2.jpg"
-      },
-      {
-        "id": "polsha2",
-        "name": "польша",
-        "image": "/n_6_3.jpg"
-      },
-      {
-        "id": "bolgariya2",
-        "name": "болгария",
-        "image": "/n_6_4.jpg"
-      },
-      {
-        "id": "amerika2",
-        "name": "америка",
-        "image": "/n_6_5.jpg"
-      },
-      {
-        "id": "dimas",
-        "name": "Димас",
-        "image": "/n_7_1.jpg"
-      },
-      {
-        "id": "patsok",
-        "name": "Пацюк",
-        "image": "/n_7_2.jpg"
-      },
-      {
-        "id": "tomas",
-        "name": "Томас",
-        "image": "/n_7_3.jpg"
-      },
-      {
-        "id": "artok",
-        "name": "Артек",
-        "image": "/n_7_4.jpg"
-      },
-      {
-        "id": "dimas_slovenskii",
-        "name": "Димас словенский",
-        "image": "/n_7_5.jpg"
-      },
-      {
-        "id": "pavuk",
-        "name": "Павук",
-        "image": "/n_7_6.jpg"
-      },
-      {
-        "id": "supermarket_simulator",
-        "name": "Supermarket Simulator",
-        "image": "/n_8_1.jpg"
-      },
-      {
-        "id": "farming_simulator",
-        "name": "Farming Simulator 25",
-        "image": "/n_8_2.jpg"
-      },
-      {
-        "id": "ranch_simulator",
-        "name": "Ranch Simulator",
-        "image": "/n_8_3.jpg"
-      },
-      {
-        "id": "the_long_drive",
-        "name": "The Long Drive",
-        "image": "/n_8_4.jpg"
-      },
-      {
-        "id": "trailmakers",
-        "name": "Trailmakers",
-        "image": "/n_8_5.jpg"
-      },
-      {
-        "id": "my_summer_car",
-        "name": "my summer car",
-        "image": "/n_8_6.jpg"
-      },
-      {
-        "id": "armatura",
-        "name": "Арматура",
-        "image": "/n_9_1.jpg"
-      },
-      {
-        "id": "arkhangel",
-        "name": "Архангел",
-        "image": "/n_9_2.jpg"
-      },
-      {
-        "id": "artok2",
-        "name": "Артек",
-        "image": "/n_9_3.jpg"
-      },
-      {
-        "id": "buodinkban",
-        "name": "Ву Один Кан",
-        "image": "/n_9_4.jpg"
-      },
-      {
-        "id": "arurik",
-        "name": "Арурик",
-        "image": "/n_9_5.jpg"
-      },
-      {
-        "id": "dimmidron",
-        "name": "Диммидрон",
-        "image": "/n_10_1.jpg"
-      },
-      {
-        "id": "pumba",
-        "name": "Пумба",
-        "image": "/n_10_2.jpg"
-      },
-      {
-        "id": "pangalin",
-        "name": "Пангалин",
-        "image": "/n_10_3.jpg"
-      },
-      {
-        "id": "pikachuk",
-        "name": "Пикачук",
-        "image": "/n_10_4.jpg"
-      },
-      {
-        "id": "dimas_zashipkeril_persika",
-        "name": "Димас зашкерил Персика",
-        "image": "/n_11_1.jpg"
-      },
-      {
-        "id": "arturik_spizdia_avatarku",
-        "name": "Артурик спиздил аватарку пацюка",
-        "image": "/n_11_2.jpg"
-      },
-      {
-        "id": "mikha_sbezhalsya",
-        "name": "Миха съебался в америчку и оставил кентов в загнивающей европе",
-        "image": "/n_11_3.jpg"
-      },
-      {
-        "id": "tomas_obosral_sloveniyu",
-        "name": "Игорь обосрал Словению и потом очень долго съебывался",
-        "image": "/n_11_4.jpg"
-      },
-      {
-        "id": "artur_tozhe_obosral",
-        "name": "Артур тоже обосрал словению и съебался",
-        "image": "/n_11_5.jpg"
-      },
-      {
-        "id": "patsuk_na_gey",
-        "name": "Пацюк на геймскоме",
-        "image": "/n_12_1.jpg",
-      },
-      {
-        "id": "misha_v_amerike",
-        "name": "Миша в Америчке",
-        "image": "/n_12_2.jpg",
-      },
-      {
-        "id": "oleh_na_lastochke",
-        "name": "Олег на Ласточке повсюду",
-        "image": "/n_12_3.jpg",
-      },
-      {
-        "id": "dimas_v_geyrope",
-        "name": "Димас в гейропе",
-        "image": "/n_12_4.jpg",
-      },
-      {
-        "id": "persik_nashel_dom",
-        "name": "Персик нашел себе дом",
-        "image": "/n_13_1.jpg"
-      },
-      {
-        "id": "artur_oformil_doki",
-        "name": "Артур быстро оформил все доки в сло а потом разоформил",
-        "image": "/n_13_2.jpg"
-      },
-      {
-        "id": "patsok_slomal",
-        "name": "пацюк сломал писюн",
-        "image": "/n_13_3.jpg"
-      },
-      {
-        "id": "mikha_svalil",
-        "name": "Миха свалил в америку",
-        "image": "/n_13_4.jpg"
-      },
-      {
-        "id": "divan_tomas",
-        "name": "Диван (томас)",
-        "image": "/n_14_1.jpg"
-      },
-      {
-        "id": "divan_dlya_persika",
-        "name": "диван для персика",
-        "image": "/n_14_2.jpg"
-      },
-      {
-        "id": "chernyi_kozhanyi",
-        "name": "черный кожаный",
-        "image": "/n_14_3.jpg"
-      },
-      {
-        "id": "krovat_patsoka",
-        "name": "кровать пацюка",
-        "image": "/n_14_4.jpg"
-      },
-      {
-        "id": "igor_spal",
-        "name": "Игорь спал под шторой",
-        "image": "/n_15_1.jpg"
-      },
-      {
-        "id": "oleg_gde_istorii",
-        "name": "Олег где истории шамана?",
-        "image": "/n_15_2.jpg"
-      },
-      {
-        "id": "patsok_sdelal",
-        "name": "пацюк сделал обрезание",
-        "image": "/n_15_3.jpg"
-      },
-      {
-        "id": "lyuboe_peresechenie",
-        "name": "любое пересечение границы",
-        "image": "/n_15_4.jpg"
-      },
-      {
-        "id": "igor_dengi",
-        "name": "Игорь (Деньги)",
-        "image": "/n_16_1.jpg"
-      },
-      {
-        "id": "dimas_svyazi",
-        "name": "Димас (Связи)",
-        "image": "/n_16_2.jpg"
-      },
-      {
-        "id": "arturchik_v_poiskakh",
-        "name": "Артурчик в поисках места для себя",
-        "image": "/n_16_3.jpg"
-      },
-      {
-        "id": "investory",
-        "name": "инвесторы",
-        "image": "/n_16_4.jpg"
-      },
-      {
-        "id": "napalennyi_pauk",
-        "name": "Напаленный паук",
-        "image": "/n_17_1.jpg"
-      },
-      {
-        "id": "napatsochennyi_patsok",
-        "name": "Напацюченный пацюк",
-        "image": "/n_17_2.jpg"
-      },
-      {
-        "id": "beshoshnyi_dimas",
-        "name": "БЕСШОВНЫЙ ДИМАС",
-        "image": "/n_17_3.jpg"
-      },
-      {
-        "id": "odesskii_dimas",
-        "name": "ОДЕССКИЙ ДИМАС БЕЗ СВЕТА",
-        "image": "/n_17_4.jpg"
-      },
-      {
-        "id": "nadivanini_divan",
-        "name": "Надиваненый диван",
-        "image": "/n_17_5.jpg"
-      },
-      {
-        "id": "natertaya_armatura",
-        "name": "Каленая арматура",
-        "image": "/n_17_6.jpg"
-      },
-      {
-        "id": "ramki_sidyat",
-        "name": "Рекич сидит на жопе ровно",
-        "image": "/n_18_1.jpg"
-      },
-      {
-        "id": "olezka_nikto",
-        "name": "Олежка. Никто не знал шо он съебывает.",
-        "image": "/n_18_2.jpg"
-      },
-      {
-        "id": "mikha_pervyi",
-        "name": "Миха - первый лодочник",
-        "image": "/n_18_3.jpg"
-      },
-      {
-        "id": "arterik_sbezhatsya",
-        "name": "Артерик съебаться любой ценой",
-        "image": "/n_18_4.jpg"
-      },
-      {
-        "id": "vladie_popytka",
-        "name": "Владик - моя попытка номер 2",
-        "image": "/n_18_5.jpg"
-      },
-      {
-        "id": "vadim_menshe_ves",
-        "name": "Вадим: меньне знаешь - крепче спишь",
-        "image": "/n_18_6.jpg"
-      },
-      {
-        "id": "artur_ne_vyshel",
-        "name": "Артук не вышел из дискорда",
-        "image": "/n_19_1.jpg"
-      },
-      {
-        "id": "ebya_belok",
-        "name": "Ебя Белок",
-        "image": "/n_19_2.jpg"
-      },
-      {
-        "id": "patsok_i_shtora",
-        "name": "пацюк и штора",
-        "image": "/n_19_3.jpg"
-      },
-      {
-        "id": "shtura_patsoka",
-        "name": "Шкурка пацюка",
-        "image": "/n_19_4.jpg"
-      },
-      {
-        "id": "beschovnost",
-        "name": "Димасяча бесшовность",
-        "image": "/n_19_5.jpg"
-      },
-      {
-        "id": "under_der_woter",
-        "name": "Under the water",
-        "image": "/n_19_6.jpg"
-      },
-      {
-        "id": "luchshe_chem_nechego",
-        "name": "Лучше чем ничего",
-        "image": "/n_19_7.jpg"
-      },
-      {
-        "id": "musorka_olega",
-        "name": "Мусорка олега",
-        "image": "/n_20_1.jpg"
-      },
-      {
-        "id": "musorka_dimasa",
-        "name": "Мусорка Димаса в Мариборе",
-        "image": "/n_20_2.jpg"
-      },
-      {
-        "id": "musorka_igorya",
-        "name": "Мусорка Игоря",
-        "image": "/n_20_3.jpg"
-      },
-      {
-        "id": "musorka_dimasa_odessa",
-        "name": "Мусорка Димаса в Одессе",
-        "image": "/n_20_4.jpg"
-      },
-      {
-        "id": "musorka_tomasa",
-        "name": "мусорка томаса",
-        "image": "/n_20_5.jpg"
-      },
-      {
-        "id": "musorka_vadima",
-        "name": "Мусорка Вадима",
-        "image": "/n_20_6.jpg"
-      },
-      {
-        "id": "musorka_miha",
-        "name": "Мусорка Михаила",
-        "image": "/n_20_7.jpg"
-      },
-      {
-        "id": "musorka_artuk",
-        "name": "Мусорка Артука",
-        "image": "/n_20_8.jpg"
-      },
-      {
-        "id": "musorka_vlad",
-        "name": "Мусорка Владика",
-        "image": "/n_20_9.jpg"
-      },
-      {
-        "id": "1",
-        "name": "1",
-        "image": "/n_21_1.jpg"
-      },
-      {
-        "id": "2",
-        "name": "2",
-        "image": "/n_21_2.jpg"
-      },
-      {
-        "id": "3",
-        "name": "3",
-        "image": "/n_21_3.jpg"
-      },
-      {
-        "id": "zhdalker2",
-        "name": "Ждалкер 2",
-        "image": "/n_22_1.jpg"
-      },
-      {
-        "id": "marvel_rivals",
-        "name": "Marvel Rivals",
-        "image": "/n_22_2.jpg"
-      },
-      {
-        "id": "astrobot",
-        "name": "астробот",
-        "image": "/n_22_3.jpg"
-      },
-      {
-        "id": "path_of_exile",
-        "name": "Path of Exile 2",
-        "image": "/n_22_4.jpg"
-      },
-      {
-        "id": "helldivers2",
-        "name": "HELLDIVERS™ 2",
-        "image": "/n_22_5.jpg"
-      },
-      {
-        "id": "steam_deck",
-        "name": "Steam Deck",
-        "image": "/n_22_6.jpg"
-      },
-      {
-        "id": "wukong",
-        "name": "Wu Kong",
-        "image": "/n_22_7.jpg"
-      },
-      {
-        "id": "satisfactory",
-        "name": "Satisfactory",
-        "image": "/n_22_8.jpg"
-      },
-      {
-        "id": "phantom_liberty",
-        "name": "Phantom Liberty",
-        "image": "/n_22_9.jpg"
-      },
-      {
-        "id": "kc",
-        "name": "КС",
-        "image": "/n_23_1.jpg"
-      },
-      {
-        "id": "marvel_rivals2",
-        "name": "Marvel Rivals",
-        "image": "/n_23_2.jpg"
-      },
-      {
-        "id": "my_summer_car2",
-        "name": "my summer car",
-        "image": "/n_23_3.jpg"
-      },
-      {
-        "id": "stalker",
-        "name": "Сталкер",
-        "image": "/n_23_4.jpg"
-      },
-      {
-        "id": "konkord",
-        "name": "Конкорд",
-        "image": "/n_24_1.jpg"
-      },
-      {
-        "id": "diablo3",
-        "name": "Диабла 3",
-        "image": "/n_24_2.jpg"
-      },
-      {
-        "id": "helldivers",
-        "name": "хелдрайверс",
-        "image": "/n_24_3.jpg"
-      },
-      {
-        "id": "zhiga_v_may",
-        "name": "Жига в май саммер карс",
-        "image": "/n_24_4.jpg"
-      },
-      {
-        "id": "lays_of_pi",
-        "name": "Лайз оф пи",
-        "image": "/n_25_1.jpg"
-      },
-      {
-        "id": "vukong",
-        "name": "вуконг",
-        "image": "/n_25_2.jpg"
-      },
-      {
-        "id": "dls_dlya_enderlinga",
-        "name": "длс для ендерлинга",
-        "image": "/n_25_3.jpg"
-      },
-      {
-        "id": "kukhnya_v_maribore",
-        "name": "кухня в мариборе",
-        "image": "/n_25_4.jpg"
-      },
-      {
-        "id": "vecherinki_pdiddy",
-        "name": "Вечеринки PDiddy не доходят до уровня николаева",
-        "image": "/n_26_1.jpg"
-      },
-      {
-        "id": "ukrainskaya_diaspora",
-        "name": "Украинская диаспора страдает от отсутсвия суши в бебирбор",
-        "image": "/n_26_2.jpg"
-      },
-      {
-        "id": "trampaharis",
-        "name": "Трампахарис",
-        "image": "/n_26_3.jpg"
-      },
-      {
-        "id": "protest_gruzi",
-        "name": "протесты в грузии",
-        "image": "/n_26_4.jpg"
-      },
-      {
-        "id": "protest_korea",
-        "name": "протесты в коерее",
-        "image": "/n_26_5.jpg"
-      },
-      {
-        "id": "kursk",
-        "name": "курск",
-        "image": "/n_26_6.jpg"
-      },
-      {
-        "id": "sirya",
-        "name": "сиря",
-        "image": "/n_26_7.jpg"
-      },
-      {
-        "id": "sector_vs_izra",
-        "name": "сектор газа вс израиль",
-        "image": "/n_26_8.jpg"
-      },
-      {
-        "id": "na_menya_gladit",
-        "name": "на меня гладит игриво пиво пиво пиво пиво",
-        "image": "/n_27_1.jpg"
-      },
-      {
-        "id": "tak_tak_tak",
-        "name": "так так так понятно? дААААА",
-        "image": "/n_27_2.jpg"
-      },
-      {
-        "id": "tranbalon",
-        "name": "транбалон",
-        "image": "/n_27_3.jpg"
-      },
-      {
-        "id": "macbook",
-        "name": "Макбук",
-        "image": "/n_28_1.jpg"
-      },
-      {
-        "id": "pk",
-        "name": "Пк",
-        "image": "/n_28_2.jpg"
-      },
-      {
-        "id": "stimdeck",
-        "name": "Стимдек",
-        "image": "/n_28_3.jpg"
-      },
-      {
-        "id": "ps5",
-        "name": "PS5",
-        "image": "/n_28_4.jpg"
-      },
-      {
-        "id": "noutbuk",
-        "name": "ноутбук",
-        "image": "/n_28_5.jpg"
-      },
-      {
-        "id": "piksel_olega",
-        "name": "пиксель олега",
-        "image": "/n_28_6.jpg"
-      },
-      {
-        "id": "witcher4",
-        "name": "Witcher 4",
-        "image": "/n_29_1.jpg"
-      },
-      {
-        "id": "monsterhunter",
-        "name": "Монстерхантер",
-        "image": "/n_29_2.jpg"
-      },
-      {
-        "id": "gtab",
-        "name": "Гта 6",
-        "image": "/n_29_3.jpg"
-      },
-      {
-        "id": "death_stranding2",
-        "name": "death stranding 2",
-        "image": "/n_29_4.jpg"
-      },
-      {
-        "id": "lize_of_pi",
-        "name": "Lies of pi",
-        "image": "/n_29_5.jpg"
-      }
+          "id": "n_1_1",
+          "name": "Появление микрочела у Димаса",
+          "image": "/n_1_1.jpg"
+        },
+        {
+          "id": "n_1_2",
+          "name": "Переезд Владика в Польшу",
+          "image": "/n_1_2.jpg"
+        },
+        {
+          "id": "n_1_3",
+          "name": "Игорь теперь платит налоги",
+          "image": "/n_1_3.jpg"
+        },
+        {
+          "id": "n_1_4",
+          "name": "Воскрешние Толика в дс",
+          "image": "/n_1_4.jpg"
+        },
+        {
+          "id": "n_1_5",
+          "name": "Переезд Томаса в Варшаву/освобождение",
+          "image": "/n_1_5.jpg"
+        },
+        {
+          "id": "n_1_6",
+          "name": "У Димаса теперь не батрачка, а работа",
+          "image": "/n_1_6.jpg"
+        },
+        {
+          "id": "n_1_7",
+          "name": "Артур теперь восхищается",
+          "image": "/n_1_7.jpg"
+        },
+        {
+          "id": "n_2_1",
+          "name": "Артур десятый раз пиздует в Словению",
+          "image": "/n_2_1.jpg"
+        },
+        {
+          "id": "n_2_2",
+          "name": "Дима фоткает стройку (1 см от депортации)",
+          "image": "/n_2_2.jpg"
+        },
+        {
+          "id": "n_2_3",
+          "name": "Игорь постоянно ломает велик и падает с него",
+          "image": "/n_2_3.jpg"
+        },
+        {
+          "id": "n_2_4",
+          "name": "Томас не различает цифры 3 и 5",
+          "image": "/n_2_4.jpg"
+        },
+        {
+          "id": "n_2_5",
+          "name": "Димас покупает макбук и на след день дают свет",
+          "image": "/n_2_5.jpg"
+        },
+        {
+          "id": "n_2_6",
+          "name": "Димас забыл скрыть порно игру в стиме",
+          "image": "/n_2_6.jpg"
+        },
+        {
+          "id": "n_2_7",
+          "name": "Пенисиловка умирает изза апдейта",
+          "image": "/n_2_7.jpg"
+        },
+        {
+          "id": "n_2_8",
+          "name": "Толик не поженился на японке",
+          "image": "/n_2_8.jpg"
+        },
+        {
+          "id": "n_3_1",
+          "name": "Видеокарта Игоря",
+          "image": "/n_3_1.jpg"
+        },
+        {
+          "id": "n_3_2",
+          "name": "Кироши Димаса",
+          "image": "/n_3_2.jpg"
+        },
+        {
+          "id": "n_3_3",
+          "name": "Пшикалка для пэпсы 2",
+          "image": "/n_3_3.jpg"
+        },
+        {
+          "id": "n_3_4",
+          "name": "Стимдек Диско",
+          "image": "/n_3_4.jpg"
+        },
+        {
+          "id": "n_3_5",
+          "name": "Спиннер",
+          "image": "/n_3_5.jpg"
+        },
+        {
+          "id": "n_3_6",
+          "name": "Пальто Толи за 3 гривны",
+          "image": "/n_3_6.jpg"
+        },
+        {
+          "id": "n_4_1",
+          "name": "Батрачка Димаса",
+          "image": "/n_4_1.jpg"
+        },
+        {
+          "id": "n_4_2",
+          "name": "Батрачка Томаса",
+          "image": "/n_4_2.jpg"
+        },
+        {
+          "id": "n_4_3",
+          "name": "Бабрачка Игоря",
+          "image": "/n_4_3.jpg"
+        },
+        {
+          "id": "n_4_4",
+          "name": "Баброчка Влада",
+          "image": "/n_4_4.jpg"
+        },
+        {
+          "id": "n_5_1",
+          "name": "Игорь теперь двухколёсный",
+          "image": "/n_5_1.jpg"
+        },
+        {
+          "id": "n_5_2",
+          "name": "Димас с Томасом решили быть дронщиками",
+          "image": "/n_5_2.jpg"
+        },
+        {
+          "id": "n_5_3",
+          "name": "Влад открывает студию звукозаписи",
+          "image": "/n_5_3.jpg"
+        },
+        {
+          "id": "n_5_4",
+          "name": "Диско теперь водитерь DnD",
+          "image": "/n_5_4.jpg"
+        },
+        {
+          "id": "n_5_5",
+          "name": "Ededoppler хочет бросить вызов Гордону Рамзи",
+          "image": "/n_5_5.jpg"
+        },
+        {
+          "id": "n_5_6",
+          "name": "Дима пытается получить кофейный передоз",
+          "image": "/n_5_6.jpg"
+        },
+        {
+          "id": "n_6_1",
+          "name": "Димас",
+          "image": "/n_6_1.jpg"
+        },
+        {
+          "id": "n_7_1",
+          "name": "Локоточками туда-сюда",
+          "image": "/n_7_1.jpg"
+        },
+        {
+          "id": "n_7_2",
+          "name": "Сосед Владика в Мариборе",
+          "image": "/n_7_2.jpg"
+        },
+        {
+          "id": "n_7_3",
+          "name": "Олег не вернулся",
+          "image": "/n_7_3.jpg"
+        },
+        {
+          "id": "n_7_4",
+          "name": "157 крокодилов Томаса",
+          "image": "/n_7_4.jpg"
+        },
+        {
+          "id": "n_7_5",
+          "name": "Патрика распидорасило на сво",
+          "image": "/n_7_5.jpg"
+        },
+        {
+          "id": "n_7_6",
+          "name": "Артур сьебался с диска пока Димас его ждет",
+          "image": "/n_7_6.jpg"
+        },
+        {
+          "id": "n_7_7",
+          "name": "Башня хлеба",
+          "image": "/n_7_7.jpg"
+        },
+        {
+          "id": "n_8_1",
+          "name": "Пацюк вьебался и погнул спицу",
+          "image": "/n_8_1.jpg"
+        },
+        {
+          "id": "n_8_2",
+          "name": "В пацюка вьебался поляк сзади",
+          "image": "/n_8_2.jpg"
+        },
+        {
+          "id": "n_8_3",
+          "name": "Пацюк сделал сальтуху на велике в лесу",
+          "image": "/n_8_3.jpg"
+        },
+        {
+          "id": "n_8_4",
+          "name": "Пацюк боится ездить на новом велике",
+          "image": "/n_8_4.jpg"
+        },
+        {
+          "id": "n_9_1",
+          "name": "ИИ повсюду",
+          "image": "/n_9_1.jpg"
+        },
+        {
+          "id": "n_9_2",
+          "name": "Трамп ГУБАМИ закончил +100500 воин",
+          "image": "/n_9_2.jpg"
+        },
+        {
+          "id": "n_9_3",
+          "name": "НЕФТЕБАЗЫ",
+          "image": "/n_9_3.jpg"
+        },
+        {
+          "id": "n_9_4",
+          "name": "Усик побил негра без смс и регистрации",
+          "image": "/n_9_4.jpg"
+        },
+        {
+          "id": "n_9_5",
+          "name": "Криптовалюты Трампа",
+          "image": "/n_9_5.jpg"
+        },
+        {
+          "id": "n_9_6",
+          "name": "Файлы Эпштейна",
+          "image": "/n_9_6.jpg"
+        },
+        {
+          "id": "n_9_7",
+          "name": "Опять война евреев и не евреев(мы такое осуждаем)",
+          "image": "/n_9_7.jpg"
+        },
+        {
+          "id": "n_10_1",
+          "name": "Clair Obscur: Expedition 33",
+          "image": "/n_10_1.jpg"
+        },
+        {
+          "id": "n_10_2",
+          "name": "Death Stranding 2",
+          "image": "/n_10_2.jpg"
+        },
+        {
+          "id": "n_10_3",
+          "name": "Donkey Kong Bananza",
+          "image": "/n_10_3.jpg"
+        },
+        {
+          "id": "n_10_4",
+          "name": "Hades II",
+          "image": "/n_10_4.jpg"
+        },
+        {
+          "id": "n_10_5",
+          "name": "Kingdom Come: Deliverance II",
+          "image": "/n_10_5.jpg"
+        },
+        {
+          "id": "n_10_6",
+          "name": "Hollow Knight: Silksong",
+          "image": "/n_10_6.jpg"
+        },
+        {
+          "id": "n_11_1",
+          "name": "Экспедиция 33",
+          "image": "/n_11_1.jpg"
+        },
+        {
+          "id": "n_11_2",
+          "name": "Диспатч",
+          "image": "/n_11_2.jpg"
+        },
+        {
+          "id": "n_11_3",
+          "name": "Батлбилд 6",
+          "image": "/n_11_3.jpg"
+        },
+        {
+          "id": "n_11_4",
+          "name": "Хадэс 2",
+          "image": "/n_11_4.jpg"
+        },
+        {
+          "id": "n_11_5",
+          "name": "Инждрих 2",
+          "image": "/n_11_5.jpg"
+        },
+        {
+          "id": "n_11_6",
+          "name": "Монст хантер Дикий",
+          "image": "/n_11_6.jpg"
+        },
+        {
+          "id": "n_11_7",
+          "name": "Дум ",
+          "image": "/n_11_7.jpg"
+        },
+        {
+          "id": "n_12_1",
+          "name": "Майнкрафт сервер Томаса",
+          "image": "/n_12_1.jpg"
+        },
+        {
+          "id": "n_12_2",
+          "name": "Монитор пацючары шоб наебать налоги",
+          "image": "/n_12_2.jpg"
+        },
+        {
+          "id": "n_12_3",
+          "name": "Любой додеп Толика",
+          "image": "/n_12_3.jpg"
+        },
+        {
+          "id": "n_12_4",
+          "name": "Нож Димаса в кантрастрыке",
+          "image": "/n_12_4.jpg"
+        },
+        {
+          "id": "n_13_1",
+          "name": "Пепсик",
+          "image": "/n_13_1.jpg"
+        },
+        {
+          "id": "n_13_2",
+          "name": "Геральт",
+          "image": "/n_13_2.jpg"
+        },
+        {
+          "id": "n_13_3",
+          "name": "Луна",
+          "image": "/n_13_3.jpg"
+        },
+        {
+          "id": "n_13_4",
+          "name": "Бруна",
+          "image": "/n_13_4.jpg"
+        },
+        {
+          "id": "n_13_5",
+          "name": "DayZ",
+          "image": "/n_13_5.jpg"
+        },
+        {
+          "id": "n_13_6",
+          "name": "Летательные аппараты у Игоря в хате",
+          "image": "/n_13_6.jpg"
+        },
+        {
+          "id": "n_14_1",
+          "name": "Игорь собирает что то на камеру",
+          "image": "/n_14_1.jpg"
+        },
+        {
+          "id": "n_14_2",
+          "name": "Трансляции порно игр от Димаса(когда Аня не дома)",
+          "image": "/n_14_2.jpg"
+        },
+        {
+          "id": "n_14_3",
+          "name": "Толик рассказывает как правильно заниматься сексом",
+          "image": "/n_14_3.jpg"
+        },
+        {
+          "id": "n_14_4",
+          "name": "Понять почему Томас грусный",
+          "image": "/n_14_4.jpg"
+        },
+        {
+          "id": "n_14_5",
+          "name": "Понять почему Томас весёлый",
+          "image": "/n_14_5.jpg"
+        },
+        {
+          "id": "n_14_6",
+          "name": "Любой рассказ Владика и Артура про работу",
+          "image": "/n_14_6.jpg"
+        },
+        {
+          "id": "n_15_1",
+          "name": "Симулятор Вора (Crime Simulator)",
+          "image": "/n_15_1.jpg"
+        },
+        {
+          "id": "n_15_2",
+          "name": "Симулятор Пожарника (Firefighting Simulator)",
+          "image": "/n_15_2.jpg"
+        },
+        {
+          "id": "n_15_3",
+          "name": "Углекопа (Out of Ore)",
+          "image": "/n_15_3.jpg"
+        },
+        {
+          "id": "n_15_4",
+          "name": "Пенисиловка (Bellwright)",
+          "image": "/n_15_4.jpg"
+        },
+        {
+          "id": "n_15_5",
+          "name": "R.E.P.O.",
+          "image": "/n_15_5.jpg"
+        },
+        {
+          "id": "n_15_6",
+          "name": "PEAK",
+          "image": "/n_15_6.jpg"
+        },
+        {
+          "id": "n_15_7",
+          "name": "Курительные Водители (RV There Yet?)",
+          "image": "/n_15_7.jpg"
+        }
     ];
     const nominees = [
       {
