@@ -488,237 +488,226 @@ export class AppComponent {
     ];
     const nominees = [
       {
-        "title": "Лучший ивент года",
+        "title": "Самое грандиозное событие 2025",
         "description": "",
         "image": "/n_1.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["geimkom_i_100_video", "ze_geim_evards", "evrovidenie", "boi_usika"]
-      },
-      {
-        "title": "лучший питомец для всего дискорда",
+        "candidates": [
+            "n_1_1",
+            "n_1_2",
+            "n_1_3",
+            "n_1_4",
+            "n_1_5",
+            "n_1_6",
+            "n_1_7"
+        ]
+    },
+    {
+        "title": "Самый грандиозный фейл 2025",
         "description": "",
         "image": "/n_2.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["parik", "persik", "shmelak", "korol_tomata", "gerald", "luncha", "dayzi"]
-      },
-      {
-        "title": "Лучшая интерпретация имени Томаса",
+        "candidates": [
+            "n_2_1",
+            "n_2_2",
+            "n_2_3",
+            "n_2_4",
+            "n_2_5",
+            "n_2_6",
+            "n_2_7",
+            "n_2_8"
+        ]
+    },
+    {
+        "title": "Преобретение года",
         "description": "",
         "image": "/n_3.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["tomat", "turbina", "tomatronus", "artem", "turbonasos", "talibeius"]
-      },
-      {
-        "title": "Самый смешной случай с Олегом",
+        "candidates": [
+            "n_3_1",
+            "n_3_2",
+            "n_3_3",
+            "n_3_4",
+            "n_3_5",
+            "n_3_6"
+        ]
+    },
+    {
+        "title": "Самая ебаная работа года  (Нытик года)",
         "description": "",
         "image": "/n_4.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["muravei_na_zapupe", "bolshe_banok", "pokupka_pikselya", "ander_za_veter", "pobeda_nad_dadanom"]
-      },
-      {
-        "title": "Лучшая словения года",
+        "candidates": [
+            "n_4_1",
+            "n_4_2",
+            "n_4_3",
+            "n_4_4"
+        ]
+    },
+    {
+        "title": "Хобби года",
         "description": "",
         "image": "/n_5.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["sloveniya1", "sloveniya2", "polsha1", "bolgariya1", "amerika1"]
-      },
-      {
-        "title": "Лучшая страна для жизни",
+        "candidates": [
+            "n_5_1",
+            "n_5_2",
+            "n_5_3",
+            "n_5_4",
+            "n_5_5",
+            "n_5_6"
+        ]
+    },
+    {
+        "title": "Лучший hdr года",
         "description": "",
         "image": "/n_6.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["chekia", "ukraina", "polsha2", "bolgariya2", "amerika2"]
-      },
-      {
-        "title": "Лучшая аватарка в дс",
+        "candidates": [
+            "n_6_1"
+        ]
+    },
+    {
+        "title": "Мем года:",
         "description": "",
         "image": "/n_7.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["dimas", "patsok", "tomas", "artok", "dimas_slovenskii", "pavuk"]
-      },
-      {
-        "title": "Лучшая игра категории Г в которую играли",
+        "candidates": [
+            "n_7_1",
+            "n_7_2",
+            "n_7_3",
+            "n_7_4",
+            "n_7_5",
+            "n_7_6",
+            "n_7_7"
+        ]
+    },
+    {
+        "title": "Пацючий велоприкол",
         "description": "",
         "image": "/n_8.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["supermarket_simulator", "farming_simulator", "ranch_simulator", "the_long_drive", "trailmakers", "my_summer_car"]
-      },
-      {
-        "title": "Лучшая интерпретация имени Артура",
+        "candidates": [
+            "n_8_1",
+            "n_8_2",
+            "n_8_3",
+            "n_8_4"
+        ]
+    },
+    {
+        "title": "Сошиал событие 2025",
         "description": "",
         "image": "/n_9.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["armatura", "arkhangel", "artok2", "buodinkban", "arurik"]
-      },
-      {
-        "title": "Лучший ник для Димаса",
+        "candidates": [
+            "n_9_1",
+            "n_9_2",
+            "n_9_3",
+            "n_9_4",
+            "n_9_5",
+            "n_9_6",
+            "n_9_7"
+        ]
+    },
+    {
+        "title": "Игра года(список по версии нормисов)",
         "description": "",
         "image": "/n_10.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["dimmidron", "pumba", "pangalin", "pikachuk"]
-      },
-      {
-        "title": "пацючий мув года",
+        "candidates": [
+            "n_10_1",
+            "n_10_2",
+            "n_10_3",
+            "n_10_4",
+            "n_10_5",
+            "n_10_6"
+        ]
+    },
+    {
+        "title": "Игра года нормальных пацанов",
         "description": "",
         "image": "/n_11.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["dimas_zashipkeril_persika", "arturik_spizdia_avatarku", "mikha_sbezhalsya", "tomas_obosral_sloveniyu", "artur_tozhe_obosral"]
-      },
-      {
-        "title": "путешественник года",
+        "candidates": [
+            "n_11_1",
+            "n_11_2",
+            "n_11_3",
+            "n_11_4",
+            "n_11_5",
+            "n_11_6",
+            "n_11_7"
+        ]
+    },
+    {
+        "title": "Додеп года",
         "description": "",
         "image": "/n_12.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["patsuk_na_gey", "misha_v_amerike", "oleh_na_lastochke", "dimas_v_geyrope"]
-      },
-      {
-        "title": "Самая быстрая рука на диком западе",
+        "candidates": [
+            "n_12_1",
+            "n_12_2",
+            "n_12_3",
+            "n_12_4"
+        ]
+    },
+    {
+        "title": "Питомец года",
         "description": "",
         "image": "/n_13.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["persik_nashel_dom", "artur_oformil_doki", "patsok_slomal", "mikha_svalil"]
-      },
-      {
-        "title": "самый мягкий диван",
+        "candidates": [
+            "n_13_1",
+            "n_13_2",
+            "n_13_3",
+            "n_13_4",
+            "n_13_5",
+            "n_13_6"
+        ]
+    },
+    {
+        "title": "Лучший ивернт года",
         "description": "",
         "image": "/n_14.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["divan_tomas", "divan_dlya_persika", "chernyi_kozhanyi", "krovat_patsoka"]
-      },
-      {
-        "title": "лучшая история года",
+        "candidates": [
+            "n_14_1",
+            "n_14_2",
+            "n_14_3",
+            "n_14_4",
+            "n_14_5",
+            "n_14_6"
+        ]
+    },
+    {
+        "title": "Лучший стим Симулятор для Мужчин",
         "description": "",
         "image": "/n_15.jpg",
         "canVote": true,
         "showWinner": false,
-        "candidates": ["igor_spal", "oleg_gde_istorii", "patsok_sdelal", "lyuboe_peresechenie"]
-      },
-      {
-        "title": "самый глубокий мыслитель",
-        "description": "",
-        "image": "/n_16.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["igor_dengi", "dimas_svyazi", "arturchik_v_poiskakh", "investory"]
-      },
-      {
-        "title": "Первый пацюк на селе",
-        "description": "",
-        "image": "/n_17.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["napalennyi_pauk", "napatsochennyi_patsok", "beshoshnyi_dimas", "odesskii_dimas", "natertaya_armatura","nadivanini_divan"]
-      },
-      {
-        "title": "Самый эпический сьеб",
-        "description": "",
-        "image": "/n_18.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["ramki_sidyat", "olezka_nikto", "mikha_pervyi", "arterik_sbezhatsya", "vladie_popytka", "vadim_menshe_ves"]
-      },
-      {
-        "title": "Лучший колбасный мем",
-        "description": "",
-        "image": "/n_19.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["artur_ne_vyshel", "ebya_belok", "patsok_i_shtora", "shtura_patsoka", "beschovnost", "under_der_woter", "luchshe_chem_nechego"]
-      },
-      {
-        "title": "Самое Базованое рабочее место/сетап 2024",
-        "description": "",
-        "image": "/n_20.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["musorka_olega", "musorka_dimasa", "musorka_igorya", "musorka_dimasa_odessa","musorka_tomasa","musorka_vadima","musorka_miha","musorka_artuk","musorka_vlad"]
-      },
-      {
-        "title": "Лучшая сделка пацюка",
-        "description": "",
-        "image": "/n_21.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["1", "2", "3"]
-      },
-      {
-        "title": "Лучшая игра года",
-        "description": "",
-        "image": "/n_22.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["zhdalker2", "marvel_rivals", "astrobot", "path_of_exile", "helldivers2", "steam_deck", "satisfactory", "phantom_liberty", "wukong"]
-      },
-      {
-        "title": "Лучшая игра по эмоциям",
-        "description": "",
-        "image": "/n_23.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["kc", "marvel_rivals2", "my_summer_car2", "stalker"]
-      },
-      {
-        "title": "Катафалк (не успел родиться - уже сдох)",
-        "description": "",
-        "image": "/n_24.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["konkord", "diablo3", "helldivers", "zhiga_v_may"]
-      },
-      {
-        "title": "Паттерн дождя (лучший соулслайк)",
-        "description": "",
-        "image": "/n_25.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["lays_of_pi", "vukong", "dls_dlya_enderlinga", "kukhnya_v_maribore"]
-      },
-      {
-        "title": "Соушал событие года",
-        "description": "",
-        "image": "/n_26.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["vecherinki_pdiddy", "ukrainskaya_diaspora", "trampaharis",	"protest_gruzi","protest_korea","kursk","sirya","sector_vs_izra"]
-      },
-      {
-        "title": "лучший аудиофайл года",
-        "description": "",
-        "image": "/n_27.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["na_menya_gladit", "tak_tak_tak", "tranbalon"]
-      },
-      {
-        "title": "лучший гаджет",
-        "description": "",
-        "image": "/n_28.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["macbook", "pk", "stimdeck", "ps5", "noutbuk", "piksel_olega"]
-      },
-      {
-        "title": "самая одижидаммая игра",
-        "description": "",
-        "image": "/n_29.jpg",
-        "canVote": true,
-        "showWinner": false,
-        "candidates": ["witcher4", "monsterhunter", "gtab", "death_stranding2", "lize_of_pi"]
-      }
+        "candidates": [
+            "n_15_1",
+            "n_15_2",
+            "n_15_3",
+            "n_15_4",
+            "n_15_5",
+            "n_15_6",
+            "n_15_7"
+        ]
+    }
     ];
     this.createInitialData(candidates, nominees);
   }
