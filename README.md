@@ -1,86 +1,58 @@
 # Awards
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.0.5.
+Multi-tenant awards campaigns (categories, nominees, visibility, invites) — **Next.js**, **Convex**, **Clerk**, **Vercel**. Replaces the previous Angular + Firebase app in this repo.
 
-## Development server
+## Prerequisites
 
-To start a local development server, run:
+- [Bun](https://bun.sh)
+- A [Convex](https://convex.dev) account
+- A [Clerk](https://clerk.com) application
+
+## Setup
+
+1. Copy [`.env.example`](.env.example) to `.env.local` and fill in Clerk keys.
+
+2. Start Convex (links a deployment and sets `NEXT_PUBLIC_CONVEX_URL`):
+
+   ```bash
+   bunx convex dev
+   ```
+
+3. In the [Clerk dashboard](https://dashboard.clerk.com), create a JWT template named **`convex`** (Convex docs). Set **`CLERK_JWT_ISSUER_DOMAIN`** in Convex dashboard env to your Clerk Frontend API issuer host (see Convex + Clerk guide).
+
+4. Install and run the app:
+
+   ```bash
+   bun install
+   bun dev
+   ```
+
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
+
+## Scripts
+
+| Command | Description |
+|--------|-------------|
+| `bun dev` | Next.js dev server (Turbopack) |
+| `bun run convex:dev` | Convex dev / sync functions |
+| `bun run build` | Production build |
+| `bun run test:e2e` | Playwright tests (start app separately or set `PLAYWRIGHT_BASE_URL`) |
+
+## Deploy (Vercel)
+
+- Import the repo; set the same env vars as `.env.example` in Vercel.
+- Run `bunx convex deploy` for production Convex, then point `NEXT_PUBLIC_CONVEX_URL` at that deployment.
+
+## Linear
+
+Work is tracked in Linear project **“Awards platform v1”** (milestones M0–M6). Issue IDs **LAB-50+** map to scaffold, schema, UI, access, public page, and hardening.
+
+## Regenerating Convex `api` types
+
+[`convex/_generated`](convex/_generated) is checked in so builds work without a linked deployment. After changing Convex functions, run:
 
 ```bash
-ng serve
+bunx convex codegen
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
-
-
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-apiKey: "AIzaSyB_KAnW0fZQk7ONAdHzZVexoWrQrAw1cEw",
-authDomain: "sosiska-awards.firebaseapp.com",
-projectId: "sosiska-awards",
-storageBucket: "sosiska-awards.firebasestorage.app",
-messagingSenderId: "703398929655",
-appId: "1:703398929655:web:fb699d0bacc1248e099ff2",
-measurementId: "G-11EED4B643"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-npm install -g firebase-tools
-
-![img.png](sosiska.png)
+(with `CONVEX_DEPLOYMENT` / `npx convex dev` configured) to refresh types.
