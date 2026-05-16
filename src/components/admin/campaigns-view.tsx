@@ -1,22 +1,14 @@
 "use client";
 
 import { api } from "@cvx/_generated/api";
-import { useMutation, useQuery } from "convex/react";
-import { ChevronDown, LayoutGrid, List, Plus, Search } from "lucide-react";
+import { useQuery } from "convex/react";
+import { LayoutGrid, List, Plus, Search } from "lucide-react";
+import Link from "next/link";
 import { useMemo } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
-import {
-  CampaignCard,
-  CampaignListRow,
-} from "@/components/admin/campaign-item";
+import { CampaignCard, CampaignTable } from "@/components/admin/campaign-item";
 import type { CampaignLifecycle } from "@/components/admin/campaign-labels";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -44,11 +36,7 @@ export function CampaignsView() {
     setLifecycle,
     viewMode,
     setViewMode,
-    shareMessage,
-    showShareMessage,
   } = useAdmin();
-
-  const createCampaign = useMutation(api.campaigns.create);
 
   const lifecycleFilter =
     lifecycle === "all" ? undefined : (lifecycle as CampaignLifecycle);
@@ -67,15 +55,6 @@ export function CampaignsView() {
   const isLoading = workspaceId && campaigns === undefined;
   const isEmpty = campaigns?.length === 0;
 
-  const handleCreateCampaign = async () => {
-    if (!workspaceId) return;
-    try {
-      await createCampaign({ workspaceId });
-    } catch {
-      showShareMessage("Could not create campaign");
-    }
-  };
-
   const gridClassName = useMemo(
     () =>
       viewMode === "cards"
@@ -85,16 +64,7 @@ export function CampaignsView() {
   );
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-      {shareMessage ? (
-        <p
-          className="rounded-md border border-border bg-muted px-3 py-2 text-sm"
-          role="status"
-        >
-          {shareMessage}
-        </p>
-      ) : null}
-
+    <div className="flex min-h-0 flex-1 flex-col gap-6 p-4 md:p-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative flex-1 lg:max-w-sm">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -137,22 +107,6 @@ export function CampaignsView() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button type="button" />}>
-              <Plus className="size-4" />
-              Add new
-              <ChevronDown className="size-4 opacity-70" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleCreateCampaign}>
-                Campaign
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled>User (soon)</DropdownMenuItem>
-              <DropdownMenuItem disabled>Category (soon)</DropdownMenuItem>
-              <DropdownMenuItem disabled>Nominee (soon)</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
@@ -167,21 +121,22 @@ export function CampaignsView() {
           <p className="text-sm text-muted-foreground">
             No campaigns yet. Create your first campaign to get started.
           </p>
-          <Button type="button" onClick={handleCreateCampaign}>
+          <Link
+            href="/admin/campaigns/new"
+            className={buttonVariants({ className: "gap-1.5" })}
+          >
             <Plus className="size-4" />
             New campaign
-          </Button>
+          </Link>
+        </div>
+      ) : viewMode === "cards" ? (
+        <div className={gridClassName}>
+          {(campaigns ?? []).map((campaign) => (
+            <CampaignCard key={campaign._id} campaign={campaign} />
+          ))}
         </div>
       ) : (
-        <div className={gridClassName}>
-          {campaigns?.map((campaign) =>
-            viewMode === "cards" ? (
-              <CampaignCard key={campaign._id} campaign={campaign} />
-            ) : (
-              <CampaignListRow key={campaign._id} campaign={campaign} />
-            ),
-          )}
-        </div>
+        <CampaignTable campaigns={campaigns ?? []} />
       )}
     </div>
   );

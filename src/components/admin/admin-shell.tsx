@@ -6,11 +6,10 @@ import { type ReactNode, useEffect } from "react";
 import { AdminProvider, useAdmin } from "@/components/admin/admin-context";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminTopBar } from "@/components/admin/admin-top-bar";
-import { CampaignsView } from "@/components/admin/campaigns-view";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 function AdminShellInner({ children }: { children?: ReactNode }) {
-  const { mobileNavOpen, setMobileNavOpen } = useAdmin();
+  const { mobileNavOpen, setMobileNavOpen, shareMessage } = useAdmin();
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
@@ -20,10 +19,18 @@ function AdminShellInner({ children }: { children?: ReactNode }) {
           <AdminSidebar className="h-full w-full border-0" />
         </SheetContent>
       </Sheet>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <AdminTopBar />
-        <main className="flex-1 overflow-y-auto">
-          {children ?? <CampaignsView />}
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          {shareMessage ? (
+            <p
+              className="mx-4 mt-4 shrink-0 rounded-md border border-border bg-muted px-3 py-2 text-sm md:mx-6"
+              role="status"
+            >
+              {shareMessage}
+            </p>
+          ) : null}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
         </main>
       </div>
     </div>
