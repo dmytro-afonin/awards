@@ -38,7 +38,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     useState<Id<"campaigns"> | null>(null);
   const [search, setSearch] = useState("");
   const [lifecycle, setLifecycle] = useState("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("cards");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
 
