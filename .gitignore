@@ -6,6 +6,10 @@
 /out-tsc
 /bazel-out
 
+# Next.js
+.next/
+.env*.local
+
 # Node
 /node_modules
 npm-debug.log
@@ -45,3 +49,4 @@ Thumbs.db
 .firebase
 *-debug.log
 .runtimeconfig.json
+.vercel
