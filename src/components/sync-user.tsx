@@ -1,9 +1,9 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
+import { api } from "@cvx/_generated/api";
 import { useConvexAuth, useMutation } from "convex/react";
 import { useEffect, useRef } from "react";
-import { api } from "@cvx/_generated/api";
 
 /**
  * Wait for Convex to receive a valid Clerk JWT before calling mutations that use ctx.auth.

@@ -5,7 +5,9 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "img.clerk.com", pathname: "/**" }],
+    remotePatterns: [
+      { protocol: "https", hostname: "img.clerk.com", pathname: "/**" },
+    ],
   },
 };
 

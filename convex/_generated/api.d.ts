@@ -8,19 +8,13 @@
  * @module
  */
 
-import type * as campaignPublic from "../campaignPublic.js";
 import type * as campaigns from "../campaigns.js";
-import type * as categories from "../categories.js";
-import type * as fields from "../fields.js";
-import type * as files from "../files.js";
-import type * as invites from "../invites.js";
 import type * as lib_access from "../lib/access.js";
-import type * as lib_categoryStatus from "../lib/categoryStatus.js";
-import type * as lib_tokens from "../lib/tokens.js";
+import type * as lib_slug from "../lib/slug.js";
 import type * as lib_users from "../lib/users.js";
-import type * as nominees from "../nominees.js";
+import type * as lib_workspaces from "../lib/workspaces.js";
 import type * as users from "../users.js";
-import type * as votes from "../votes.js";
+import type * as workspaces from "../workspaces.js";
 
 import type {
   ApiFromModules,
@@ -29,19 +23,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  campaignPublic: typeof campaignPublic;
   campaigns: typeof campaigns;
-  categories: typeof categories;
-  fields: typeof fields;
-  files: typeof files;
-  invites: typeof invites;
   "lib/access": typeof lib_access;
-  "lib/categoryStatus": typeof lib_categoryStatus;
-  "lib/tokens": typeof lib_tokens;
+  "lib/slug": typeof lib_slug;
   "lib/users": typeof lib_users;
-  nominees: typeof nominees;
+  "lib/workspaces": typeof lib_workspaces;
   users: typeof users;
-  votes: typeof votes;
+  workspaces: typeof workspaces;
 }>;
 
 /**
