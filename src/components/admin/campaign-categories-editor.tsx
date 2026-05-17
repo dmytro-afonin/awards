@@ -5,6 +5,7 @@ import type { Id } from "@cvx/_generated/dataModel";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -36,6 +37,14 @@ export function CampaignCategoriesEditor({
   const removeCategory = useMutation(api.campaignCategories.removeCategory);
   const addNominee = useMutation(api.campaignCategories.addNominee);
   const removeNominee = useMutation(api.campaignCategories.removeNominee);
+  const setCategoryImage = useMutation(api.campaignCategories.setCategoryImage);
+  const clearCategoryImage = useMutation(
+    api.campaignCategories.clearCategoryImage,
+  );
+  const setNomineeImage = useMutation(api.campaignCategories.setNomineeImage);
+  const clearNomineeImage = useMutation(
+    api.campaignCategories.clearNomineeImage,
+  );
 
   const [newCategoryName, setNewCategoryName] = useState("");
   const [nomineeNames, setNomineeNames] = useState<Record<string, string>>({});
@@ -116,23 +125,59 @@ export function CampaignCategoriesEditor({
                   <RiDeleteBinLine className="size-4" />
                 </Button>
               </div>
-              <ul className="mb-2 flex flex-col gap-1">
+              <ImageUploadField
+                label="Category photo"
+                imageUrl={category.imageUrl}
+                aspect={1}
+                previewClassName="max-w-40"
+                disabled={disabled || busy}
+                onUpload={async (storageId) => {
+                  await setCategoryImage({
+                    categoryId: category._id,
+                    storageId,
+                  });
+                }}
+                onRemove={async () => {
+                  await clearCategoryImage({ categoryId: category._id });
+                }}
+              />
+              <ul className="mb-2 flex flex-col gap-3">
                 {category.nominees.map((nominee) => (
                   <li
                     key={nominee._id}
-                    className="flex items-center justify-between gap-2 text-sm"
+                    className="border-t border-border/60 pt-3"
                   >
-                    <span>{nominee.name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-xs"
+                    <div className="mb-2 flex items-center justify-between gap-2 text-sm">
+                      <span className="font-medium">{nominee.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        disabled={disabled || busy}
+                        aria-label={`Remove ${nominee.name}`}
+                        onClick={() =>
+                          removeNominee({ nomineeId: nominee._id })
+                        }
+                      >
+                        <RiDeleteBinLine className="size-3.5" />
+                      </Button>
+                    </div>
+                    <ImageUploadField
+                      label="Nominee photo"
+                      imageUrl={nominee.imageUrl}
+                      aspect={1}
+                      previewClassName="max-w-32"
                       disabled={disabled || busy}
-                      aria-label={`Remove ${nominee.name}`}
-                      onClick={() => removeNominee({ nomineeId: nominee._id })}
-                    >
-                      <RiDeleteBinLine className="size-3.5" />
-                    </Button>
+                      onUpload={async (storageId) => {
+                        await setNomineeImage({
+                          nomineeId: nominee._id,
+                          storageId,
+                        });
+                      }}
+                      onRemove={async () => {
+                        await clearNomineeImage({ nomineeId: nominee._id });
+                      }}
+                    />
                   </li>
                 ))}
               </ul>

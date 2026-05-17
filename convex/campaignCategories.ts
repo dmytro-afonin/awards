@@ -1,25 +1,46 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { type MutationCtx, mutation, query } from "./_generated/server";
 import { requireAdminMembership } from "./lib/access";
 import { isCampaignContentEditable } from "./lib/campaignLifecycleRules";
 import {
   getCategoryNomineeCounts,
   syncCampaignContentCounts,
 } from "./lib/campaignReady";
+import {
+  assertImageStorageObject,
+  deleteStorageFile,
+  resolveStorageImageUrl,
+} from "./lib/images";
 
 const categoryWithNominees = v.object({
   _id: v.id("campaignCategories"),
   campaignId: v.id("campaigns"),
   name: v.string(),
   sortOrder: v.number(),
+  imageUrl: v.optional(v.string()),
   nominees: v.array(
     v.object({
       _id: v.id("campaignNominees"),
       name: v.string(),
       sortOrder: v.number(),
+      imageUrl: v.optional(v.string()),
     }),
   ),
 });
+
+async function assertCampaignImageEditable(
+  ctx: MutationCtx,
+  campaignId: Id<"campaigns">,
+) {
+  const campaign = await ctx.db.get(campaignId);
+  if (!campaign) throw new Error("Campaign not found");
+  await requireAdminMembership(ctx, campaign.workspaceId);
+  if (!isCampaignContentEditable(campaign.lifecycle)) {
+    throw new Error("Revert this campaign to draft before editing images.");
+  }
+  return campaign;
+}
 
 export const listForCampaign = query({
   args: { campaignId: v.id("campaigns") },
@@ -44,18 +65,26 @@ export const listForCampaign = query({
           .query("campaignNominees")
           .withIndex("by_category", (q) => q.eq("categoryId", category._id))
           .collect();
+        const categoryImageUrl = await resolveStorageImageUrl(
+          ctx,
+          category.imageStorageId,
+        );
         return {
           _id: category._id,
           campaignId: category.campaignId,
           name: category.name,
           sortOrder: category.sortOrder,
-          nominees: nominees
-            .map((n) => ({
-              _id: n._id,
-              name: n.name,
-              sortOrder: n.sortOrder,
-            }))
-            .sort((a, b) => a.sortOrder - b.sortOrder),
+          imageUrl: categoryImageUrl,
+          nominees: (
+            await Promise.all(
+              nominees.map(async (n) => ({
+                _id: n._id,
+                name: n.name,
+                sortOrder: n.sortOrder,
+                imageUrl: await resolveStorageImageUrl(ctx, n.imageStorageId),
+              })),
+            )
+          ).sort((a, b) => a.sortOrder - b.sortOrder),
         };
       }),
     );
@@ -118,8 +147,10 @@ export const removeCategory = mutation({
       .withIndex("by_category", (q) => q.eq("categoryId", args.categoryId))
       .collect();
     for (const nominee of nominees) {
+      await deleteStorageFile(ctx, nominee.imageStorageId);
       await ctx.db.delete(nominee._id);
     }
+    await deleteStorageFile(ctx, category.imageStorageId);
     await ctx.db.delete(args.categoryId);
     await syncCampaignContentCounts(ctx, category.campaignId);
     return null;
@@ -175,8 +206,81 @@ export const removeNominee = mutation({
       throw new Error("Revert this campaign to draft before editing nominees.");
     }
 
+    await deleteStorageFile(ctx, nominee.imageStorageId);
     await ctx.db.delete(args.nomineeId);
     await syncCampaignContentCounts(ctx, category.campaignId);
+    return null;
+  },
+});
+
+export const setCategoryImage = mutation({
+  args: {
+    categoryId: v.id("campaignCategories"),
+    storageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const category = await ctx.db.get(args.categoryId);
+    if (!category) throw new Error("Category not found");
+    await assertCampaignImageEditable(ctx, category.campaignId);
+    await assertImageStorageObject(ctx, args.storageId);
+
+    const previousId = category.imageStorageId;
+    await ctx.db.patch(args.categoryId, { imageStorageId: args.storageId });
+    if (previousId && previousId !== args.storageId) {
+      await deleteStorageFile(ctx, previousId);
+    }
+    return null;
+  },
+});
+
+export const clearCategoryImage = mutation({
+  args: { categoryId: v.id("campaignCategories") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const category = await ctx.db.get(args.categoryId);
+    if (!category) throw new Error("Category not found");
+    await assertCampaignImageEditable(ctx, category.campaignId);
+    await ctx.db.patch(args.categoryId, { imageStorageId: undefined });
+    await deleteStorageFile(ctx, category.imageStorageId);
+    return null;
+  },
+});
+
+export const setNomineeImage = mutation({
+  args: {
+    nomineeId: v.id("campaignNominees"),
+    storageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const nominee = await ctx.db.get(args.nomineeId);
+    if (!nominee) throw new Error("Nominee not found");
+    const category = await ctx.db.get(nominee.categoryId);
+    if (!category) throw new Error("Category not found");
+    await assertCampaignImageEditable(ctx, category.campaignId);
+    await assertImageStorageObject(ctx, args.storageId);
+
+    const previousId = nominee.imageStorageId;
+    await ctx.db.patch(args.nomineeId, { imageStorageId: args.storageId });
+    if (previousId && previousId !== args.storageId) {
+      await deleteStorageFile(ctx, previousId);
+    }
+    return null;
+  },
+});
+
+export const clearNomineeImage = mutation({
+  args: { nomineeId: v.id("campaignNominees") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const nominee = await ctx.db.get(args.nomineeId);
+    if (!nominee) throw new Error("Nominee not found");
+    const category = await ctx.db.get(nominee.categoryId);
+    if (!category) throw new Error("Category not found");
+    await assertCampaignImageEditable(ctx, category.campaignId);
+    await ctx.db.patch(args.nomineeId, { imageStorageId: undefined });
+    await deleteStorageFile(ctx, nominee.imageStorageId);
     return null;
   },
 });

@@ -25,6 +25,11 @@ import {
   syncCampaignContentCounts,
 } from "./lib/campaignReady";
 import { resolveUniqueSlug } from "./lib/campaignSlug";
+import {
+  assertImageStorageObject,
+  deleteStorageFile,
+  resolveStorageImageUrl,
+} from "./lib/images";
 import { slugifyName, uniqueSlugSuffix } from "./lib/slug";
 import { campaignLifecycle, campaignVisibility } from "./schema";
 
@@ -32,6 +37,7 @@ const saveIntent = v.union(v.literal("save_draft"), v.literal("mark_ready"));
 
 const campaignRow = v.object({
   _id: v.id("campaigns"),
+  _creationTime: v.number(),
   workspaceId: v.id("workspaces"),
   name: v.string(),
   description: v.optional(v.string()),
@@ -49,10 +55,14 @@ const campaignRow = v.object({
   votePercent: v.number(),
 });
 
-function toCampaignRowBase(doc: Doc<"campaigns">) {
+function toCampaignRowBase(
+  doc: Doc<"campaigns">,
+  imageUrl: string | undefined,
+) {
   const lifecycle = normalizeCampaignLifecycle(doc.lifecycle as string);
   return {
     _id: doc._id,
+    _creationTime: doc._creationTime,
     workspaceId: doc.workspaceId,
     name: doc.name,
     description: doc.description,
@@ -61,11 +71,17 @@ function toCampaignRowBase(doc: Doc<"campaigns">) {
     lifecycle,
     votingStartsAt: doc.votingStartsAt,
     votingEndsAt: doc.votingEndsAt,
-    imageUrl: doc.imageUrl,
+    imageUrl,
     categories: doc.categories ?? [],
     categoryCount: doc.categoryCount,
     nomineeCount: doc.nomineeCount,
   };
+}
+
+async function toCampaignRow(ctx: QueryCtx, doc: Doc<"campaigns">) {
+  const imageUrl =
+    (await resolveStorageImageUrl(ctx, doc.imageStorageId)) ?? doc.imageUrl;
+  return toCampaignRowBase(doc, imageUrl);
 }
 
 async function countWorkspaceMembers(
@@ -105,7 +121,7 @@ function computeVotePercent(
 async function attachParticipationStats(
   ctx: QueryCtx,
   workspaceId: Id<"workspaces">,
-  rows: ReturnType<typeof toCampaignRowBase>[],
+  rows: Awaited<ReturnType<typeof toCampaignRow>>[],
 ) {
   const memberCount = await countWorkspaceMembers(ctx, workspaceId);
   return Promise.all(
@@ -163,7 +179,7 @@ export const getForAdmin = query({
       return null;
     }
     const [row] = await attachParticipationStats(ctx, doc.workspaceId, [
-      toCampaignRowBase(doc),
+      await toCampaignRow(ctx, doc),
     ]);
     return row ?? null;
   },
@@ -188,7 +204,9 @@ export const listForWorkspace = query({
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
-    const baseRows = rows.map(toCampaignRowBase);
+    const baseRows = await Promise.all(
+      rows.map((doc) => toCampaignRow(ctx, doc)),
+    );
 
     let filtered = baseRows;
     if (args.lifecycles !== undefined) {
@@ -209,8 +227,7 @@ export const listForWorkspace = query({
       });
     }
 
-    const sorted = filtered.sort((a, b) => a.name.localeCompare(b.name));
-    return attachParticipationStats(ctx, args.workspaceId, sorted);
+    return attachParticipationStats(ctx, args.workspaceId, filtered);
   },
 });
 
@@ -356,6 +373,56 @@ export const update = mutation({
       lifecycle: nextLifecycle,
     });
 
+    return null;
+  },
+});
+
+export const setImage = mutation({
+  args: {
+    campaignId: v.id("campaigns"),
+    storageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.campaignId);
+    if (!doc) throw new Error("Campaign not found");
+    await requireAdminMembership(ctx, doc.workspaceId);
+    if (!isCampaignContentEditable(doc.lifecycle)) {
+      throw new Error(
+        "Revert this campaign to draft before changing the cover image.",
+      );
+    }
+    await assertImageStorageObject(ctx, args.storageId);
+
+    const previousId = doc.imageStorageId;
+    await ctx.db.patch(args.campaignId, {
+      imageStorageId: args.storageId,
+      imageUrl: undefined,
+    });
+    if (previousId && previousId !== args.storageId) {
+      await deleteStorageFile(ctx, previousId);
+    }
+    return null;
+  },
+});
+
+export const clearImage = mutation({
+  args: { campaignId: v.id("campaigns") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.campaignId);
+    if (!doc) throw new Error("Campaign not found");
+    await requireAdminMembership(ctx, doc.workspaceId);
+    if (!isCampaignContentEditable(doc.lifecycle)) {
+      throw new Error(
+        "Revert this campaign to draft before changing the cover image.",
+      );
+    }
+    await ctx.db.patch(args.campaignId, {
+      imageStorageId: undefined,
+      imageUrl: undefined,
+    });
+    await deleteStorageFile(ctx, doc.imageStorageId);
     return null;
   },
 });

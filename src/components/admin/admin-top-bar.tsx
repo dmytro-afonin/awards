@@ -94,7 +94,7 @@ export function AdminTopBar() {
       <div className="w-44 min-w-0 shrink-0 sm:w-56">
         <CampaignSelector isCampaignListRoot={isCampaignListRoot} />
       </div>
-      <div className="flex min-w-0 flex-1 justify-center px-2">
+      <div className="hidden min-w-0 flex-1 justify-center px-2 md:flex">
         <CardTitle className="truncate text-center normal-case">
           {pageTitle}
         </CardTitle>

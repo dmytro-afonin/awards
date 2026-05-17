@@ -38,6 +38,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { canShowRowDelete, canShowRowEditLink } from "@/lib/campaign-lifecycle";
+import { publicCampaignPath } from "@/lib/public-campaign-url";
 import { cn } from "@/lib/utils";
 
 function CampaignBadges({ campaign }: { campaign: CampaignRow }) {
@@ -56,12 +57,12 @@ function CampaignRowActions({
   const removeCampaign = useMutation(api.campaigns.remove);
 
   const editHref = `/admin/campaigns/${campaign._id}`;
-  const viewHref = `/c/${campaign.slug}`;
+  const viewHref = publicCampaignPath(campaign.slug, campaign.workspaceId);
   const showRowEditLink = canShowRowEditLink(campaign.lifecycle);
   const showRowDelete = canShowRowDelete(campaign.lifecycle);
 
   const handleShare = async () => {
-    const publicUrl = `${window.location.origin}/c/${campaign.slug}`;
+    const publicUrl = `${window.location.origin}${publicCampaignPath(campaign.slug, campaign.workspaceId)}`;
     try {
       await navigator.clipboard.writeText(publicUrl);
       showShareMessage("Campaign link copied");
