@@ -8,9 +8,9 @@
 
 Document each transition in [[features/Campaigns]]:
 
-- draft ↔ ready (revert allowed if not started)
-- → started (manual or schedule; **cannot** start if end in past)
-- → finished (from started only)
+- draft ↔ ready (revert allowed if not launched)
+- → launched (manual **launch** or schedule; **cannot** launch if end is in the past)
+- → finished (from launched only)
 - **Validation:** single shared path for manual and scheduled triggers.
 
 ## Steps (outline)

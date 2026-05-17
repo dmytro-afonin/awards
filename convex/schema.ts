@@ -15,8 +15,9 @@ export const campaignVisibility = v.union(
 export const campaignLifecycle = v.union(
   v.literal("draft"),
   v.literal("ready"),
-  v.literal("started"),
+  v.literal("launched"),
   v.literal("finished"),
+  v.literal("deleted"),
 );
 
 export default defineSchema({
@@ -52,10 +53,35 @@ export default defineSchema({
     votingStartsAt: v.optional(v.number()),
     votingEndsAt: v.optional(v.number()),
     imageUrl: v.optional(v.string()),
+    categories: v.optional(v.array(v.string())),
     categoryCount: v.number(),
     nomineeCount: v.number(),
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_and_slug", ["workspaceId", "slug"])
     .index("by_workspace_and_lifecycle", ["workspaceId", "lifecycle"]),
+
+  campaignCategories: defineTable({
+    campaignId: v.id("campaigns"),
+    name: v.string(),
+    sortOrder: v.number(),
+  }).index("by_campaign", ["campaignId"]),
+
+  campaignNominees: defineTable({
+    categoryId: v.id("campaignCategories"),
+    name: v.string(),
+    sortOrder: v.number(),
+  }).index("by_category", ["categoryId"]),
+
+  categoryVotes: defineTable({
+    campaignId: v.id("campaigns"),
+    categoryId: v.id("campaignCategories"),
+    userId: v.id("users"),
+  })
+    .index("by_campaign", ["campaignId"])
+    .index("by_campaign_and_user_and_category", [
+      "campaignId",
+      "userId",
+      "categoryId",
+    ]),
 });

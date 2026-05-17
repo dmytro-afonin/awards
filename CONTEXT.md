@@ -15,7 +15,7 @@ The tenancy boundary for organizing members and campaigns. Every campaign belong
 The workspace created automatically for a user when their user record is created; that user is its **owner**. It cannot be transferred to another user. It may be renamed; the product UI always labels it as default alongside the chosen name (e.g. name plus “(default)”).
 
 **Campaign**:  
-A voting container (metadata, lifecycle, visibility) that exists only in the scope of a single workspace. It has a **lifecycle** with states such as **draft**, **ready**, **started**, and **finished** (the **exact lifecycle graph** is product-defined). **Lifecycle** transitions triggered **manually** and **by schedule** use the **same** **validation** and rules through one **shared** path so **automation** and **human** actions cannot diverge. It bounds the outer **voting** period that **categories** may use or narrow.
+A voting container (metadata, lifecycle, visibility) that exists only in the scope of a single workspace. It has a **lifecycle** with states such as **draft**, **ready**, **launched**, and **finished** (the **exact lifecycle graph** is product-defined). **Lifecycle** transitions triggered **manually** and **by schedule** use the **same** **validation** and rules through one **shared** path so **automation** and **human** actions cannot diverge. It bounds the outer **voting** period that **categories** may use or narrow.
 
 **Category**:
 A subdivision of a **campaign** that groups **nominees**. It defines **voting** **schedule** **inheritance** and optional **start** and **end** **overrides** (**only** **inside** the **campaign**’s permitted voting period — **overrides** may not extend **outside** the **campaign** window). Ballot shape and mutability are defined by **category voting configuration**.
@@ -134,7 +134,7 @@ For **Owner** and **Admin**, **granular permissions** are **additive only**: the
 > **Dev:** “Can a campaign exist without a workspace?”  
 > **Domain expert:** “No — a **campaign** only exists inside a **workspace**.”
 
-> **Dev:** “Does midnight cron bypass the ‘can’t start in the past’ rule?”  
+> **Dev:** “Does midnight cron bypass the ‘can’t launch in the past’ rule?”  
 > **Domain expert:** “No — **scheduled** and **manual** use the **same** checks in one path.”
 
 > **Dev:** “Can a category stay open after the campaign would close?”  

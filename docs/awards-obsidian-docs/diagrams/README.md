@@ -17,9 +17,9 @@ Use **Mermaid** inside Obsidian notes (code fence `mermaid`) or export PNG into 
 stateDiagram-v2
   [*] --> draft
   draft --> ready
-  ready --> draft: revert if not started
-  ready --> started
-  started --> finished
+  ready --> draft: revert if not launched
+  ready --> launched: launch (manual or schedule)
+  launched --> finished
 ```
 
 ## Related
