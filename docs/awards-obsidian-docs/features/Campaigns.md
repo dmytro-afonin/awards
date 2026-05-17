@@ -12,6 +12,8 @@ _TBD: workspaceId, name, slug, description, smallImageId, largeImageId, visibili
 
 ## Lifecycle
 
+States: **draft**, **ready**, **launched**, **finished** (plus **deleted** for soft-delete in admin). The **launched** state means voting is open per campaign and category windows. Manual **launch** and scheduled launch share one validation path (see `can_launch` in `docs.md`).
+
 See [[processes/Campaign lifecycle]] and [[diagrams/README]] for state diagram placeholder.
 
 ## Authorization

@@ -17,7 +17,7 @@ _TBD: e.g. `/w/.../campaigns/[id]`_
 | Edit campaign | `Button` | Navigate | [[pages/Campaign editor]] |
 | Manage categories | `Button` | Navigate | [[pages/Categories admin]] |
 | Nominees | `Button` / embedded table | CRUD | [[features/Nominees]] |
-| Lifecycle | `Button`, `AlertDialog` confirm | start/finish/revert | [[processes/Campaign lifecycle]] |
+| Lifecycle | `Button`, `AlertDialog` confirm | launch/finish/revert | [[processes/Campaign lifecycle]] |
 
 ## Related
 

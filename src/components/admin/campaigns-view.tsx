@@ -1,59 +1,61 @@
 "use client";
 
 import { api } from "@cvx/_generated/api";
+import {
+  RiAddLine,
+  RiLayoutGridLine,
+  RiListUnordered,
+  RiSearchLine,
+} from "@remixicon/react";
 import { useQuery } from "convex/react";
-import { LayoutGrid, List, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
 import { CampaignCard, CampaignTable } from "@/components/admin/campaign-item";
-import type { CampaignLifecycle } from "@/components/admin/campaign-labels";
+import { CampaignLifecycleFilter } from "@/components/admin/campaign-lifecycle-filter";
 import { buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const LIFECYCLE_OPTIONS: { value: string; label: string }[] = [
-  { value: "all", label: "All statuses" },
-  { value: "draft", label: "Draft" },
-  { value: "ready", label: "Ready" },
-  { value: "started", label: "Started" },
-  { value: "finished", label: "Finished" },
-];
 
 export function CampaignsView() {
   const {
     workspaceId,
     search,
     setSearch,
-    lifecycle,
-    setLifecycle,
+    lifecycleFilters,
+    setLifecycleFilters,
     viewMode,
     setViewMode,
   } = useAdmin();
 
-  const lifecycleFilter =
-    lifecycle === "all" ? undefined : (lifecycle as CampaignLifecycle);
+  const noStatusesSelected = lifecycleFilters.length === 0;
 
   const campaigns = useQuery(
     api.campaigns.listForWorkspace,
-    workspaceId
+    workspaceId && !noStatusesSelected
       ? {
           workspaceId,
-          lifecycle: lifecycleFilter,
+          lifecycles: lifecycleFilters,
           search: search.trim() || undefined,
         }
       : "skip",
   );
 
-  const isLoading = workspaceId && campaigns === undefined;
-  const isEmpty = campaigns?.length === 0;
+  const isLoading =
+    workspaceId && !noStatusesSelected && campaigns === undefined;
+  const isEmpty = !noStatusesSelected && campaigns?.length === 0;
 
   const gridClassName = useMemo(
     () =>
@@ -65,70 +67,81 @@ export function CampaignsView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6 p-4 md:p-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative flex-1 lg:max-w-sm">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+      <div className="flex w-full min-w-0 flex-nowrap items-center gap-2 overflow-x-auto overflow-y-hidden">
+        <InputGroup className="h-9 w-52 max-w-xs shrink-0 sm:w-64">
+          <InputGroupAddon align="inline-start">
+            <RiSearchLine />
+          </InputGroupAddon>
+          <InputGroupInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search campaigns…"
-            className="pl-9"
+            placeholder="Search…"
+            aria-label="Search campaigns"
           />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={lifecycle}
-            onValueChange={(value) => setLifecycle(value ?? "all")}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LIFECYCLE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        </InputGroup>
 
-          <Tabs
-            value={viewMode}
-            onValueChange={(value) =>
-              setViewMode(value === "list" ? "list" : "cards")
-            }
-          >
-            <TabsList>
-              <TabsTrigger value="cards" aria-label="Card view">
-                <LayoutGrid className="size-4" />
-              </TabsTrigger>
-              <TabsTrigger value="list" aria-label="List view">
-                <List className="size-4" />
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        <CampaignLifecycleFilter
+          selected={lifecycleFilters}
+          onChange={setLifecycleFilters}
+        />
+
+        <Tabs
+          value={viewMode}
+          onValueChange={(value) =>
+            setViewMode(value === "list" ? "list" : "cards")
+          }
+          className="ml-auto shrink-0 gap-0 data-horizontal:flex-row"
+        >
+          <TabsList className="h-9 gap-0.5 overflow-hidden p-0.5">
+            <TabsTrigger
+              value="cards"
+              aria-label="Card view"
+              className="size-8 shrink-0 flex-none px-0 py-0 after:hidden"
+            >
+              <RiLayoutGridLine className="size-4" />
+            </TabsTrigger>
+            <TabsTrigger
+              value="list"
+              aria-label="List view"
+              className="size-8 shrink-0 flex-none px-0 py-0 after:hidden"
+            >
+              <RiListUnordered className="size-4" />
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {!workspaceId ? (
         <p className="text-sm text-muted-foreground">
           Select a workspace to view campaigns.
         </p>
+      ) : noStatusesSelected ? (
+        <p className="text-sm text-muted-foreground">
+          Select at least one status to show campaigns.
+        </p>
       ) : isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading campaigns…</p>
-      ) : isEmpty ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border py-16 text-center">
-          <p className="text-sm text-muted-foreground">
-            No campaigns yet. Create your first campaign to get started.
-          </p>
-          <Link
-            href="/admin/campaigns/new"
-            className={buttonVariants({ className: "gap-1.5" })}
-          >
-            <Plus className="size-4" />
-            New campaign
-          </Link>
+        <div className="flex flex-col gap-3" aria-busy="true">
+          <Skeleton className="h-10 w-full max-w-sm" />
+          <Skeleton className="h-48 w-full" />
         </div>
+      ) : isEmpty ? (
+        <Empty className="border border-dashed border-border">
+          <EmptyHeader>
+            <EmptyTitle>No campaigns match</EmptyTitle>
+            <EmptyDescription>
+              Try adjusting search or status filters.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Link
+              href="/admin/campaigns/new"
+              className={buttonVariants({ className: "inline-flex gap-1.5" })}
+            >
+              <RiAddLine className="size-4" />
+              New campaign
+            </Link>
+          </EmptyContent>
+        </Empty>
       ) : viewMode === "cards" ? (
         <div className={gridClassName}>
           {(campaigns ?? []).map((campaign) => (

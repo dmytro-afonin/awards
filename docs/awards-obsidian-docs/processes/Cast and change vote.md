@@ -2,7 +2,7 @@
 
 ## Preconditions
 
-- Campaign **started**; category voting window open (inherit or override inside campaign window).
+- Campaign **launched**; category voting window open (inherit or override inside campaign window).
 - User signed in; effective **can_vote** for campaign/category.
 - Ballot rules from [[features/Category voting configuration]].
 

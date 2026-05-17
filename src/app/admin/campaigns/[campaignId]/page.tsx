@@ -23,7 +23,5 @@ export default function AdminEditCampaignPage() {
     );
   }
 
-  return (
-    <CampaignEditor mode="edit" campaignId={campaignId as Id<"campaigns">} />
-  );
+  return <CampaignEditor campaignId={campaignId as Id<"campaigns">} />;
 }

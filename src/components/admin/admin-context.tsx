@@ -6,10 +6,13 @@ import {
   type ReactNode,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
+import type { CampaignLifecycle } from "@/components/admin/campaign-labels";
+import { useNormalizeLegacyLifecycles } from "@/components/admin/use-normalize-legacy-lifecycles";
+import { type AdminToastVariant, showAdminToast } from "@/lib/admin-toast";
+import { DEFAULT_CAMPAIGN_LIFECYCLE_FILTERS } from "@/lib/campaign-lifecycle-filters";
 
 export type ViewMode = "cards" | "list";
 
@@ -20,14 +23,11 @@ type AdminContextValue = {
   setSelectedCampaignId: (id: Id<"campaigns"> | null) => void;
   search: string;
   setSearch: (value: string) => void;
-  lifecycle: string;
-  setLifecycle: (value: string) => void;
+  lifecycleFilters: CampaignLifecycle[];
+  setLifecycleFilters: (value: CampaignLifecycle[]) => void;
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
-  mobileNavOpen: boolean;
-  setMobileNavOpen: (open: boolean) => void;
-  shareMessage: string | null;
-  showShareMessage: (message: string) => void;
+  showShareMessage: (message: string, variant?: AdminToastVariant) => void;
 };
 
 const AdminContext = createContext<AdminContextValue | null>(null);
@@ -37,20 +37,19 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [selectedCampaignId, setSelectedCampaignId] =
     useState<Id<"campaigns"> | null>(null);
   const [search, setSearch] = useState("");
-  const [lifecycle, setLifecycle] = useState("all");
+  const [lifecycleFilters, setLifecycleFilters] = useState<CampaignLifecycle[]>(
+    () => [...DEFAULT_CAMPAIGN_LIFECYCLE_FILTERS],
+  );
   const [viewMode, setViewMode] = useState<ViewMode>("list");
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [shareMessage, setShareMessage] = useState<string | null>(null);
 
-  const showShareMessage = useCallback((message: string) => {
-    setShareMessage(message);
-  }, []);
+  useNormalizeLegacyLifecycles(workspaceId);
 
-  useEffect(() => {
-    if (!shareMessage) return;
-    const timer = window.setTimeout(() => setShareMessage(null), 2500);
-    return () => window.clearTimeout(timer);
-  }, [shareMessage]);
+  const showShareMessage = useCallback(
+    (message: string, variant: AdminToastVariant = "success") => {
+      showAdminToast(message, variant);
+    },
+    [],
+  );
 
   const value = useMemo(
     () => ({
@@ -60,23 +59,18 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       setSelectedCampaignId,
       search,
       setSearch,
-      lifecycle,
-      setLifecycle,
+      lifecycleFilters,
+      setLifecycleFilters,
       viewMode,
       setViewMode,
-      mobileNavOpen,
-      setMobileNavOpen,
-      shareMessage,
       showShareMessage,
     }),
     [
       workspaceId,
       selectedCampaignId,
       search,
-      lifecycle,
+      lifecycleFilters,
       viewMode,
-      mobileNavOpen,
-      shareMessage,
       showShareMessage,
     ],
   );

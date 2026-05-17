@@ -10,7 +10,7 @@ Cross-product edge cases; deep detail may live in feature notes.
 ## Lifecycle & scheduling
 
 - Manual and scheduled transition at same instant → single validation path, idempotent outcome.
-- Start campaign when computed end is in past → reject.
+- **Launch** campaign when computed end is in past → reject.
 
 ## Categories & voting
 

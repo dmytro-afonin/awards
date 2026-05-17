@@ -49,19 +49,19 @@ users:
 
 user with create campaign role can create campaign
 
-campain can have start date, end date - in this case it should automatically start or end at specified date time
+campain can have start date, end date - in this case it should automatically launch or finish at specified date time
 
-user can also start or end campaign manually 
+user can also launch or finish campaign manually 
 
 campaign should have name, slug - required, and also description, small and big image optionally. small image used in lists and overview, big image is visible only in campaign page. campaign can also be public or private. if private - only visible to the workspace members with can_view rights for this campaign.  public can be accessed even by unregistered users.
 
-can have statuses: draft, ready, started, finished.
+can have statuses: draft, ready, launched, finished.
 
 can have start date and end date
 
-when ready cannot be edited. You can revert ready to draft if not started yet. When started can only be finished. can be started or finished either automatically when date arrived or manually. cannot strat a campaign when a due date in the past. cannot finish if not started.
+when ready cannot be edited. You can revert ready to draft if not launched yet. When launched can only be finished. A campaign can be launched or finished either automatically when the scheduled date arrives or manually. cannot launch a campaign when a due date in the past. cannot finish if not launched.
 
-when campaign is started the users with can_vote can vote for the nominee in opened categories
+when campaign is launched the users with can_vote can vote for the nominee in opened categories
 
 ### Categories
 

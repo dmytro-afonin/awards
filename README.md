@@ -36,8 +36,8 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 | `bun dev` | Next.js dev server (Turbopack) |
 | `bun run convex:dev` | Convex dev / sync functions |
 | `bun run build` | Production build |
-| `bun run lint` | Biome check |
-| `bun run format` | Biome format (write) |
+| `bun run check` | Biome check (write) |
+| `bun run typecheck` | TypeScript (`tsc --noEmit`) |
 | `bun run convex:codegen` | Regenerate `convex/_generated` types |
 
 ## Deploy (Vercel)
