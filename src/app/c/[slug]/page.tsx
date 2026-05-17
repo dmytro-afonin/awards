@@ -1,19 +1,31 @@
+"use client";
+
+import { Suspense, use } from "react";
+import { PublicCampaignPage } from "@/components/public/public-campaign-page";
+import { PublicShell } from "@/components/public/public-shell";
+import { Skeleton } from "@/components/ui/skeleton";
+
 type PublicCampaignPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export default async function PublicCampaignPage({
-  params,
-}: PublicCampaignPageProps) {
-  const { slug } = await params;
-
+function CampaignPageFallback() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-2 p-8 text-center">
-      <h1 className="text-2xl font-semibold">Campaign preview</h1>
-      <p className="text-muted-foreground">
-        Public campaign page for <code className="font-mono">{slug}</code> is
-        not built yet.
-      </p>
-    </main>
+    <PublicShell>
+      <Skeleton className="mb-6 h-48 w-full" />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    </PublicShell>
+  );
+}
+
+export default function CampaignRoute({ params }: PublicCampaignPageProps) {
+  const { slug } = use(params);
+  return (
+    <Suspense fallback={<CampaignPageFallback />}>
+      <PublicCampaignPage slug={slug} />
+    </Suspense>
   );
 }

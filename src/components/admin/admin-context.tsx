@@ -13,6 +13,10 @@ import type { CampaignLifecycle } from "@/components/admin/campaign-labels";
 import { useNormalizeLegacyLifecycles } from "@/components/admin/use-normalize-legacy-lifecycles";
 import { type AdminToastVariant, showAdminToast } from "@/lib/admin-toast";
 import { DEFAULT_CAMPAIGN_LIFECYCLE_FILTERS } from "@/lib/campaign-lifecycle-filters";
+import {
+  type CampaignSortKey,
+  DEFAULT_CAMPAIGN_SORT,
+} from "@/lib/campaign-sort";
 
 export type ViewMode = "cards" | "list";
 
@@ -27,6 +31,8 @@ type AdminContextValue = {
   setLifecycleFilters: (value: CampaignLifecycle[]) => void;
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
+  campaignSort: CampaignSortKey;
+  setCampaignSort: (sort: CampaignSortKey) => void;
   showShareMessage: (message: string, variant?: AdminToastVariant) => void;
 };
 
@@ -41,6 +47,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     () => [...DEFAULT_CAMPAIGN_LIFECYCLE_FILTERS],
   );
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [campaignSort, setCampaignSort] = useState<CampaignSortKey>(
+    DEFAULT_CAMPAIGN_SORT,
+  );
 
   useNormalizeLegacyLifecycles(workspaceId);
 
@@ -63,6 +72,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       setLifecycleFilters,
       viewMode,
       setViewMode,
+      campaignSort,
+      setCampaignSort,
       showShareMessage,
     }),
     [
@@ -71,6 +82,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       search,
       lifecycleFilters,
       viewMode,
+      campaignSort,
       showShareMessage,
     ],
   );

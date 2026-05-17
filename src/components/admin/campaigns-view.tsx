@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
 import { CampaignCard, CampaignTable } from "@/components/admin/campaign-item";
-import { CampaignLifecycleFilter } from "@/components/admin/campaign-lifecycle-filter";
+import { CampaignListFilters } from "@/components/admin/campaign-list-filters";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Empty,
@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/input-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { sortCampaigns } from "@/lib/campaign-sort";
 
 export function CampaignsView() {
   const {
@@ -38,7 +40,11 @@ export function CampaignsView() {
     setLifecycleFilters,
     viewMode,
     setViewMode,
+    campaignSort,
+    setCampaignSort,
   } = useAdmin();
+  const isMobile = useIsMobile();
+  const effectiveViewMode = isMobile ? "cards" : viewMode;
 
   const noStatusesSelected = lifecycleFilters.length === 0;
 
@@ -57,18 +63,23 @@ export function CampaignsView() {
     workspaceId && !noStatusesSelected && campaigns === undefined;
   const isEmpty = !noStatusesSelected && campaigns?.length === 0;
 
+  const sortedCampaigns = useMemo(
+    () => sortCampaigns(campaigns ?? [], campaignSort),
+    [campaigns, campaignSort],
+  );
+
   const gridClassName = useMemo(
     () =>
-      viewMode === "cards"
+      effectiveViewMode === "cards"
         ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
         : "flex flex-col gap-3",
-    [viewMode],
+    [effectiveViewMode],
   );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6 p-4 md:p-6">
-      <div className="flex w-full min-w-0 flex-nowrap items-center gap-2 overflow-x-auto overflow-y-hidden">
-        <InputGroup className="h-9 w-52 max-w-xs shrink-0 sm:w-64">
+      <div className="flex w-full min-w-0 items-center gap-2">
+        <InputGroup className="h-9 min-w-0 flex-1">
           <InputGroupAddon align="inline-start">
             <RiSearchLine />
           </InputGroupAddon>
@@ -80,9 +91,11 @@ export function CampaignsView() {
           />
         </InputGroup>
 
-        <CampaignLifecycleFilter
-          selected={lifecycleFilters}
-          onChange={setLifecycleFilters}
+        <CampaignListFilters
+          lifecycleFilters={lifecycleFilters}
+          onLifecycleFiltersChange={setLifecycleFilters}
+          sort={campaignSort}
+          onSortChange={setCampaignSort}
         />
 
         <Tabs
@@ -90,7 +103,7 @@ export function CampaignsView() {
           onValueChange={(value) =>
             setViewMode(value === "list" ? "list" : "cards")
           }
-          className="ml-auto shrink-0 gap-0 data-horizontal:flex-row"
+          className="hidden shrink-0 gap-0 data-horizontal:flex-row md:flex"
         >
           <TabsList className="h-9 gap-0.5 overflow-hidden p-0.5">
             <TabsTrigger
@@ -142,14 +155,14 @@ export function CampaignsView() {
             </Link>
           </EmptyContent>
         </Empty>
-      ) : viewMode === "cards" ? (
+      ) : effectiveViewMode === "cards" ? (
         <div className={gridClassName}>
-          {(campaigns ?? []).map((campaign) => (
+          {sortedCampaigns.map((campaign) => (
             <CampaignCard key={campaign._id} campaign={campaign} />
           ))}
         </div>
       ) : (
-        <CampaignTable campaigns={campaigns ?? []} />
+        <CampaignTable campaigns={sortedCampaigns} />
       )}
     </div>
   );

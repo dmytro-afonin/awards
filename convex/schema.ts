@@ -53,6 +53,7 @@ export default defineSchema({
     votingStartsAt: v.optional(v.number()),
     votingEndsAt: v.optional(v.number()),
     imageUrl: v.optional(v.string()),
+    imageStorageId: v.optional(v.id("_storage")),
     categories: v.optional(v.array(v.string())),
     categoryCount: v.number(),
     nomineeCount: v.number(),
@@ -65,17 +66,20 @@ export default defineSchema({
     campaignId: v.id("campaigns"),
     name: v.string(),
     sortOrder: v.number(),
+    imageStorageId: v.optional(v.id("_storage")),
   }).index("by_campaign", ["campaignId"]),
 
   campaignNominees: defineTable({
     categoryId: v.id("campaignCategories"),
     name: v.string(),
     sortOrder: v.number(),
+    imageStorageId: v.optional(v.id("_storage")),
   }).index("by_category", ["categoryId"]),
 
   categoryVotes: defineTable({
     campaignId: v.id("campaigns"),
     categoryId: v.id("campaignCategories"),
+    nomineeId: v.id("campaignNominees"),
     userId: v.id("users"),
   })
     .index("by_campaign", ["campaignId"])

@@ -13,6 +13,7 @@ import { LIFECYCLE_LABELS } from "@/components/admin/campaign-labels";
 import { CampaignLifecycleActions } from "@/components/admin/campaign-lifecycle-actions";
 import { CampaignLifecycleBadge } from "@/components/admin/campaign-lifecycle-badge";
 import { CampaignVisibilityControls } from "@/components/admin/campaign-visibility-controls";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -63,6 +64,8 @@ export function CampaignEditor({ campaignId }: CampaignEditorProps) {
   });
 
   const updateCampaign = useMutation(api.campaigns.update);
+  const setCampaignImage = useMutation(api.campaigns.setImage);
+  const clearCampaignImage = useMutation(api.campaigns.clearImage);
   const removeCampaign = useMutation(api.campaigns.remove);
 
   const [name, setName] = useState("");
@@ -304,6 +307,23 @@ export function CampaignEditor({ campaignId }: CampaignEditorProps) {
                 </FieldDescription>
               </FieldContent>
             </Field>
+
+            <ImageUploadField
+              label="Cover photo"
+              description="Shown on the campaign list and cards. Cropped to 16:9."
+              imageUrl={campaign.imageUrl}
+              aspect={16 / 9}
+              previewClassName="w-full"
+              disabled={fieldsDisabled}
+              onUpload={async (storageId) => {
+                await setCampaignImage({ campaignId, storageId });
+                showShareMessage("Cover photo updated");
+              }}
+              onRemove={async () => {
+                await clearCampaignImage({ campaignId });
+                showShareMessage("Cover photo removed");
+              }}
+            />
 
             <Field>
               <FieldLabel htmlFor="campaign-description">
