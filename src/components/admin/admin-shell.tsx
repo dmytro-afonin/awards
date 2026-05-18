@@ -12,14 +12,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 function AdminShellInner({ children }: { children?: ReactNode }) {
   return (
     <TooltipProvider>
-      <SidebarProvider className="min-h-dvh">
+      {/* Lock viewport height so only the main pane scrolls; header stays put. */}
+      <SidebarProvider className="flex h-svh max-h-svh min-h-0 overflow-hidden">
         <AdminSidebar />
         <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <AdminTopBar />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-              {children}
-            </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+            {children}
           </div>
         </SidebarInset>
       </SidebarProvider>
@@ -39,7 +38,7 @@ function AdminAuthGate({ children }: { children: ReactNode }) {
 
   if (!isLoaded || !isSignedIn) {
     return (
-      <div className="flex h-dvh items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-svh items-center justify-center text-sm text-muted-foreground">
         {isLoaded ? "Redirecting to sign in…" : "Loading…"}
       </div>
     );

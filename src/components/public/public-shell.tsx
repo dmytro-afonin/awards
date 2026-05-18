@@ -40,7 +40,9 @@ export function PublicShell({
           </div>
         </div>
       </header>
-      <main className={cn("mx-auto max-w-5xl px-4 py-8 md:px-6", className)}>
+      <main
+        className={cn("mx-auto w-full max-w-5xl px-4 py-8 md:px-6", className)}
+      >
         {children}
       </main>
     </div>

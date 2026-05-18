@@ -14,16 +14,16 @@ import {
 } from "./lib/campaignLifecycleNormalize";
 import {
   assertCanArchiveCampaign,
+  assertCanCloseVoting,
   assertCanDeleteCampaign,
   assertCanFinishCampaign,
+  assertCanGoLiveAndVote,
   assertCanLaunchCampaign,
-  canRevertReadyToDraft,
+  assertCanOpenVoting,
   isCampaignContentEditable,
+  isCampaignMetadataEditable,
 } from "./lib/campaignLifecycleRules";
-import {
-  assertCanMarkReady,
-  syncCampaignContentCounts,
-} from "./lib/campaignReady";
+import { syncCampaignContentCounts } from "./lib/campaignReady";
 import { resolveUniqueSlug } from "./lib/campaignSlug";
 import {
   assertImageStorageObject,
@@ -32,8 +32,6 @@ import {
 } from "./lib/images";
 import { slugifyName, uniqueSlugSuffix } from "./lib/slug";
 import { campaignLifecycle, campaignVisibility } from "./schema";
-
-const saveIntent = v.union(v.literal("save_draft"), v.literal("mark_ready"));
 
 const campaignRow = v.object({
   _id: v.id("campaigns"),
@@ -216,7 +214,7 @@ export const listForWorkspace = query({
       const allowed = new Set(args.lifecycles);
       filtered = filtered.filter((c) => allowed.has(c.lifecycle));
     } else {
-      filtered = filtered.filter((c) => c.lifecycle !== "deleted");
+      filtered = filtered.filter((c) => c.lifecycle !== "archived");
     }
 
     const search = args.search?.trim().toLowerCase();
@@ -288,7 +286,6 @@ export const update = mutation({
     description: v.optional(v.string()),
     visibility: campaignVisibility,
     slug: v.string(),
-    intent: saveIntent,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -302,17 +299,12 @@ export const update = mutation({
     const refreshed = await ctx.db.get(args.campaignId);
     if (!refreshed) throw new Error("Campaign not found");
 
-    if (refreshed.lifecycle === "deleted") {
-      throw new Error("Deleted campaigns cannot be edited.");
+    if (refreshed.lifecycle === "archived") {
+      throw new Error("Archived campaigns cannot be edited.");
     }
 
-    if (
-      refreshed.lifecycle === "launched" ||
-      refreshed.lifecycle === "finished"
-    ) {
-      throw new Error(
-        "Launched or finished campaigns cannot be edited from this screen.",
-      );
+    if (!isCampaignMetadataEditable(refreshed.lifecycle)) {
+      throw new Error("Only draft campaigns can be edited.");
     }
 
     const name = args.name.trim();
@@ -331,46 +323,11 @@ export const update = mutation({
       refreshed._id,
     );
 
-    let nextLifecycle = refreshed.lifecycle;
-
-    if (args.intent === "mark_ready") {
-      if (refreshed.lifecycle !== "draft") {
-        throw new Error("Only draft campaigns can be marked as ready.");
-      }
-      await assertCanMarkReady(ctx, args.campaignId);
-      nextLifecycle = "ready";
-    } else if (args.intent === "save_draft") {
-      if (
-        refreshed.lifecycle === "draft" ||
-        canRevertReadyToDraft(refreshed.lifecycle)
-      ) {
-        nextLifecycle = "draft";
-      } else {
-        throw new Error("This campaign cannot be saved as draft.");
-      }
-    }
-
-    if (
-      !isCampaignContentEditable(refreshed.lifecycle) &&
-      args.intent === "save_draft" &&
-      refreshed.lifecycle === "ready"
-    ) {
-      await ctx.db.patch(args.campaignId, { lifecycle: "draft" });
-      return null;
-    }
-
-    if (!isCampaignContentEditable(refreshed.lifecycle)) {
-      throw new Error(
-        "This campaign is ready. Revert to draft before editing fields.",
-      );
-    }
-
     await ctx.db.patch(args.campaignId, {
       name,
       description,
       visibility: args.visibility,
       slug,
-      lifecycle: nextLifecycle,
     });
 
     return null;
@@ -437,7 +394,7 @@ export const remove = mutation({
     const doc = await patchCampaignLifecycleIfLegacy(ctx, raw);
     assertCanDeleteCampaign(doc);
 
-    await ctx.db.patch(args.campaignId, { lifecycle: "deleted" });
+    await ctx.db.patch(args.campaignId, { lifecycle: "archived" });
     return null;
   },
 });
@@ -452,7 +409,7 @@ export const archive = mutation({
     const doc = await patchCampaignLifecycleIfLegacy(ctx, raw);
     assertCanArchiveCampaign(doc);
 
-    await ctx.db.patch(args.campaignId, { lifecycle: "deleted" });
+    await ctx.db.patch(args.campaignId, { lifecycle: "archived" });
     return null;
   },
 });
@@ -465,13 +422,13 @@ export const launch = mutation({
     if (!raw) throw new Error("Campaign not found");
     await requireAdminMembership(ctx, raw.workspaceId);
     const doc = await patchCampaignLifecycleIfLegacy(ctx, raw);
-    assertCanLaunchCampaign(doc, Date.now());
+    await assertCanLaunchCampaign(ctx, doc);
     await ctx.db.patch(args.campaignId, { lifecycle: "launched" });
     return null;
   },
 });
 
-export const finish = mutation({
+export const goLiveAndVote = mutation({
   args: { campaignId: v.id("campaigns") },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -479,7 +436,49 @@ export const finish = mutation({
     if (!raw) throw new Error("Campaign not found");
     await requireAdminMembership(ctx, raw.workspaceId);
     const doc = await patchCampaignLifecycleIfLegacy(ctx, raw);
-    assertCanFinishCampaign(doc);
+    await assertCanGoLiveAndVote(ctx, doc);
+    await ctx.db.patch(args.campaignId, { lifecycle: "vote_live" });
+    return null;
+  },
+});
+
+export const openVoting = mutation({
+  args: { campaignId: v.id("campaigns") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const raw = await ctx.db.get(args.campaignId);
+    if (!raw) throw new Error("Campaign not found");
+    await requireAdminMembership(ctx, raw.workspaceId);
+    const doc = await patchCampaignLifecycleIfLegacy(ctx, raw);
+    assertCanOpenVoting(doc);
+    await ctx.db.patch(args.campaignId, { lifecycle: "vote_live" });
+    return null;
+  },
+});
+
+export const closeVoting = mutation({
+  args: { campaignId: v.id("campaigns") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const raw = await ctx.db.get(args.campaignId);
+    if (!raw) throw new Error("Campaign not found");
+    await requireAdminMembership(ctx, raw.workspaceId);
+    const doc = await patchCampaignLifecycleIfLegacy(ctx, raw);
+    assertCanCloseVoting(doc);
+    await ctx.db.patch(args.campaignId, { lifecycle: "vote_ended" });
+    return null;
+  },
+});
+
+export const finishCampaign = mutation({
+  args: { campaignId: v.id("campaigns") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const raw = await ctx.db.get(args.campaignId);
+    if (!raw) throw new Error("Campaign not found");
+    await requireAdminMembership(ctx, raw.workspaceId);
+    const doc = await patchCampaignLifecycleIfLegacy(ctx, raw);
+    await assertCanFinishCampaign(ctx, doc);
     await ctx.db.patch(args.campaignId, { lifecycle: "finished" });
     return null;
   },

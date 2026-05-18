@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 type BlobResult = {
   requested: string;
@@ -115,12 +114,6 @@ export default function HeicCanvasTestPage() {
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-6 p-6">
       <div className="flex flex-col gap-2">
-        <Link
-          href="/admin"
-          className={buttonVariants({ variant: "ghost", size: "sm" })}
-        >
-          ← Admin
-        </Link>
         <h1 className="font-heading text-lg font-medium">
           HEIC / canvas / toBlob
         </h1>

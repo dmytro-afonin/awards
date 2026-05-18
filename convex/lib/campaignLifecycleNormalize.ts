@@ -5,18 +5,26 @@ const LEGACY_LAUNCHED_LIFECYCLES = new Set(["started", "live"]);
 
 export type CampaignLifecycle = Doc<"campaigns">["lifecycle"];
 
+/** Map stored or legacy lifecycle strings to the canonical enum value. */
 export function normalizeCampaignLifecycle(
   lifecycle: string,
 ): CampaignLifecycle {
   if (LEGACY_LAUNCHED_LIFECYCLES.has(lifecycle)) {
     return "launched";
   }
+  if (lifecycle === "ready") {
+    return "draft";
+  }
+  if (lifecycle === "deleted") {
+    return "archived";
+  }
   if (
     lifecycle === "draft" ||
-    lifecycle === "ready" ||
     lifecycle === "launched" ||
+    lifecycle === "vote_live" ||
+    lifecycle === "vote_ended" ||
     lifecycle === "finished" ||
-    lifecycle === "deleted"
+    lifecycle === "archived"
   ) {
     return lifecycle;
   }
