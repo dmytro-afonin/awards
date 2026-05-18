@@ -20,12 +20,9 @@ import { cn } from "@/lib/utils";
 export function PublicCampaignPage({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
   const workspaceId = parseWorkspaceIdFromSearch(searchParams.toString());
-  const [now] = useState(() => Date.now());
-
   const campaign = useQuery(api.publicCampaigns.getBySlug, {
     slug,
     workspaceId,
-    now,
   });
 
   if (campaign === undefined) {

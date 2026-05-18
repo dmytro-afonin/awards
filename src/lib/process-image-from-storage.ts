@@ -1,6 +1,7 @@
 import type { Id } from "@cvx/_generated/dataModel";
 import type { CropPercent } from "@/lib/crop-percent";
 import type { ImageProcessingTarget } from "@/lib/image-processing-target";
+import { parseFetchErrorMessage } from "@/lib/parse-fetch-error-message";
 
 export async function processImageFromStorage(
   sourceStorageId: Id<"_storage">,
@@ -15,18 +16,10 @@ export async function processImageFromStorage(
   });
 
   if (!response.ok) {
-    let message = `Image processing failed (${response.status})`;
-    try {
-      const body = (await response.json()) as { error?: string };
-      if (body.error) {
-        message = body.error;
-      }
-    } catch {
-      const text = await response.text().catch(() => "");
-      if (text) {
-        message = text;
-      }
-    }
+    const message = await parseFetchErrorMessage(
+      response,
+      `Image processing failed (${response.status})`,
+    );
     throw new Error(message);
   }
 

@@ -1,4 +1,5 @@
 import type { Id } from "@cvx/_generated/dataModel";
+import { parseFetchErrorMessage } from "@/lib/parse-fetch-error-message";
 
 type GenerateUploadUrl = () => Promise<string>;
 
@@ -31,18 +32,10 @@ export async function fetchCropPreviewBlob(
     body: JSON.stringify({ storageId }),
   });
   if (!response.ok) {
-    let message = `Could not prepare preview (${response.status})`;
-    try {
-      const body = (await response.json()) as { error?: string };
-      if (body.error) {
-        message = body.error;
-      }
-    } catch {
-      const text = await response.text().catch(() => "");
-      if (text) {
-        message = text;
-      }
-    }
+    const message = await parseFetchErrorMessage(
+      response,
+      `Could not prepare preview (${response.status})`,
+    );
     throw new Error(message);
   }
   return response.blob();

@@ -21,11 +21,15 @@ function CampaignPageFallback() {
   );
 }
 
-export default function CampaignRoute({ params }: PublicCampaignPageProps) {
+function CampaignRouteInner({ params }: PublicCampaignPageProps) {
   const { slug } = use(params);
+  return <PublicCampaignPage slug={slug} />;
+}
+
+export default function CampaignRoute({ params }: PublicCampaignPageProps) {
   return (
     <Suspense fallback={<CampaignPageFallback />}>
-      <PublicCampaignPage slug={slug} />
+      <CampaignRouteInner params={params} />
     </Suspense>
   );
 }

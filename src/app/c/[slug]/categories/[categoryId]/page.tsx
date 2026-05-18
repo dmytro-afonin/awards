@@ -22,14 +22,20 @@ function CategoryPageFallback() {
   );
 }
 
-export default function CategoryRoute({ params }: PublicCategoryRouteProps) {
+function CategoryRouteInner({ params }: PublicCategoryRouteProps) {
   const { slug, categoryId } = use(params);
   return (
+    <PublicCategoryPage
+      slug={slug}
+      categoryId={categoryId as Id<"campaignCategories">}
+    />
+  );
+}
+
+export default function CategoryRoute({ params }: PublicCategoryRouteProps) {
+  return (
     <Suspense fallback={<CategoryPageFallback />}>
-      <PublicCategoryPage
-        slug={slug}
-        categoryId={categoryId as Id<"campaignCategories">}
-      />
+      <CategoryRouteInner params={params} />
     </Suspense>
   );
 }

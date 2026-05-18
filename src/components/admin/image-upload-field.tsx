@@ -42,7 +42,7 @@ export type ImageUploadFieldProps = {
   previewClassName?: string;
   disabled?: boolean;
   processingTarget: ImageProcessingTarget;
-  /** Called with the processed AVIF storage id after crop + encode succeed. */
+  /** Called with the processed storage id of the smallest encoded image after crop succeeds. */
   onUpload: (storageId: Id<"_storage">) => Promise<void>;
   onRemove: () => Promise<void>;
 };
@@ -116,6 +116,18 @@ export function ImageUploadField({
     setCroppedAreaPercent(area);
   }, []);
 
+  const abandonStaged = useCallback(
+    (storageId: Id<"_storage"> | null) => {
+      if (!storageId) {
+        return;
+      }
+      void abandonStagedImage({ storageId }).catch(() => {
+        /* Staging file may already be linked or deleted */
+      });
+    },
+    [abandonStagedImage],
+  );
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -137,18 +149,22 @@ export function ImageUploadField({
     stagingGenerationRef.current = generation;
 
     void (async () => {
+      let stagedId: Id<"_storage"> | null = null;
       try {
-        const storageId = await uploadOriginalToStorage(
+        stagedId = await uploadOriginalToStorage(
           () => generateUploadUrl({}),
           file,
         );
         if (stagingGenerationRef.current !== generation) {
+          abandonStaged(stagedId);
           return;
         }
-        stagedStorageIdRef.current = storageId;
+        stagedStorageIdRef.current = stagedId;
 
-        const previewBlob = await fetchCropPreviewBlob(storageId);
+        const previewBlob = await fetchCropPreviewBlob(stagedId);
         if (stagingGenerationRef.current !== generation) {
+          abandonStaged(stagedStorageIdRef.current);
+          stagedStorageIdRef.current = null;
           return;
         }
         setImageSrc((current) => {
@@ -161,8 +177,11 @@ export function ImageUploadField({
         setPreviewSynced(true);
       } catch (loadError) {
         if (stagingGenerationRef.current !== generation) {
+          abandonStaged(stagedStorageIdRef.current ?? stagedId);
+          stagedStorageIdRef.current = null;
           return;
         }
+        abandonStaged(stagedStorageIdRef.current ?? stagedId);
         stagedStorageIdRef.current = null;
         const message =
           loadError instanceof Error

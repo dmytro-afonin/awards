@@ -117,13 +117,25 @@ async function encodeFormat(
   let buffer: Buffer;
   switch (format) {
     case "jpeg":
-      buffer = await pipeline.clone().jpeg().toBuffer();
+      buffer = await pipeline
+        .clone()
+        .jpeg({ quality: IMAGE_ENCODE_QUALITY })
+        .toBuffer();
       break;
     case "avif":
-      buffer = await pipeline.clone().avif().toBuffer();
+      buffer = await pipeline
+        .clone()
+        .avif({
+          quality: IMAGE_ENCODE_QUALITY,
+          effort: IMAGE_AVIF_EFFORT,
+        })
+        .toBuffer();
       break;
     case "webp":
-      buffer = await pipeline.clone().webp().toBuffer();
+      buffer = await pipeline
+        .clone()
+        .webp({ quality: IMAGE_ENCODE_QUALITY })
+        .toBuffer();
       break;
     case "png":
       buffer = await pipeline.clone().png().toBuffer();
@@ -178,6 +190,7 @@ export async function processStorageImageToAvif(
   crop: CropPercent,
   maxEdge: number,
 ): Promise<Buffer> {
-  const result = await processStorageImageToSmallest(buffer, crop, maxEdge);
+  const pipeline = await buildCroppedPipeline(buffer, crop, maxEdge);
+  const result = await encodeFormat(pipeline, "avif");
   return result.buffer;
 }

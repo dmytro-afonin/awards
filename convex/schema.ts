@@ -83,6 +83,7 @@ export default defineSchema({
     userId: v.id("users"),
   })
     .index("by_campaign", ["campaignId"])
+    .index("by_campaign_and_user", ["campaignId", "userId"])
     .index("by_campaign_and_user_and_category", [
       "campaignId",
       "userId",
