@@ -20,15 +20,19 @@ import {
   FieldDescription,
   FieldLabel,
 } from "@/components/ui/field";
+import { buildClientUploadPayload } from "@/lib/client-image-upload";
 import { isAllowedImageFile } from "@/lib/crop-image";
 import type { CropPercent } from "@/lib/crop-percent";
+import { assessClientImageFile } from "@/lib/image-capabilities";
 import { maxEdgeForAspect } from "@/lib/image-process-config";
+import { logImageProcessing } from "@/lib/image-processing-log";
 import type { ImageProcessingTarget } from "@/lib/image-processing-target";
 import { processImageFromStorage } from "@/lib/process-image-from-storage";
 import {
   fetchCropPreviewBlob,
   uploadOriginalToStorage,
 } from "@/lib/stage-image-upload";
+import { uploadImageBlob } from "@/lib/upload-convex-image";
 import { cn } from "@/lib/utils";
 
 const FILE_ACCEPT =
@@ -42,7 +46,7 @@ export type ImageUploadFieldProps = {
   previewClassName?: string;
   disabled?: boolean;
   processingTarget: ImageProcessingTarget;
-  /** Called with the processed storage id of the smallest encoded image after crop succeeds. */
+  /** Called with the processed storage id after crop succeeds. */
   onUpload: (storageId: Id<"_storage">) => Promise<void>;
   onRemove: () => Promise<void>;
 };
@@ -61,6 +65,7 @@ export function ImageUploadField({
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stagedStorageIdRef = useRef<Id<"_storage"> | null>(null);
+  const originalFileRef = useRef<File | null>(null);
   const stagingGenerationRef = useRef(0);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const abandonStagedImage = useMutation(
@@ -69,10 +74,12 @@ export function ImageUploadField({
 
   const [cropOpen, setCropOpen] = useState(false);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [useServerPipeline, setUseServerPipeline] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPercent, setCroppedAreaPercent] =
     useState<CropPercent | null>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [uploading, setUploading] = useState(false);
   /** Crop % must match server-oriented preview (not raw browser decode). */
   const [previewSynced, setPreviewSynced] = useState(false);
@@ -88,6 +95,8 @@ export function ImageUploadField({
 
   const resetCropState = useCallback(() => {
     stagedStorageIdRef.current = null;
+    originalFileRef.current = null;
+    setUseServerPipeline(false);
     setImageSrc((current) => {
       revokeImageSrc(current);
       return null;
@@ -95,6 +104,7 @@ export function ImageUploadField({
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setCroppedAreaPercent(null);
+    setCroppedAreaPixels(null);
     setCropError(null);
     setPreviewSynced(false);
   }, [revokeImageSrc]);
@@ -112,8 +122,9 @@ export function ImageUploadField({
     }
   }, [abandonStagedImage, resetCropState]);
 
-  const onCropComplete = useCallback((area: Area) => {
+  const onCropComplete = useCallback((area: Area, pixels: Area) => {
     setCroppedAreaPercent(area);
+    setCroppedAreaPixels(pixels);
   }, []);
 
   const abandonStaged = useCallback(
@@ -140,7 +151,6 @@ export function ImageUploadField({
 
     setFieldError(null);
     resetCropState();
-
     setCropOpen(true);
     setUploading(true);
     setPreviewSynced(false);
@@ -149,8 +159,37 @@ export function ImageUploadField({
     stagingGenerationRef.current = generation;
 
     void (async () => {
-      let stagedId: Id<"_storage"> | null = null;
       try {
+        const assessment = await assessClientImageFile(file);
+        const useServer = !assessment.canProcessInBrowser;
+        if (stagingGenerationRef.current !== generation) {
+          return;
+        }
+
+        setUseServerPipeline(useServer);
+        logImageProcessing("pipeline-selected", {
+          pipeline: useServer ? "server" : "client",
+          fileName: file.name,
+          fileType: file.type || "(empty)",
+          fileSize: file.size,
+          naturalWidth: assessment.naturalWidth,
+          naturalHeight: assessment.naturalHeight,
+        });
+
+        if (!useServer) {
+          originalFileRef.current = file;
+          setImageSrc(URL.createObjectURL(file));
+          setCrop({ x: 0, y: 0 });
+          setZoom(1);
+          setCroppedAreaPercent(null);
+          setCroppedAreaPixels(null);
+          setPreviewSynced(true);
+          return;
+        }
+
+        originalFileRef.current = null;
+
+        let stagedId: Id<"_storage"> | null = null;
         stagedId = await uploadOriginalToStorage(
           () => generateUploadUrl({}),
           file,
@@ -174,14 +213,15 @@ export function ImageUploadField({
         setCrop({ x: 0, y: 0 });
         setZoom(1);
         setCroppedAreaPercent(null);
+        setCroppedAreaPixels(null);
         setPreviewSynced(true);
       } catch (loadError) {
         if (stagingGenerationRef.current !== generation) {
-          abandonStaged(stagedStorageIdRef.current ?? stagedId);
+          abandonStaged(stagedStorageIdRef.current);
           stagedStorageIdRef.current = null;
           return;
         }
-        abandonStaged(stagedStorageIdRef.current ?? stagedId);
+        abandonStaged(stagedStorageIdRef.current);
         stagedStorageIdRef.current = null;
         const message =
           loadError instanceof Error
@@ -197,29 +237,85 @@ export function ImageUploadField({
   };
 
   const handleSaveCrop = async () => {
-    const storageId = stagedStorageIdRef.current;
-    if (
-      !storageId ||
-      !croppedAreaPercent ||
-      !imageSrc ||
-      !previewSynced ||
-      disabled ||
-      uploading
-    ) {
+    if (!imageSrc || !previewSynced || disabled || uploading) {
       return;
     }
+
+    if (useServerPipeline) {
+      const storageId = stagedStorageIdRef.current;
+      if (!storageId || !croppedAreaPercent) {
+        return;
+      }
+      setSaving(true);
+      setCropError(null);
+      setFieldError(null);
+      try {
+        const result = await processImageFromStorage(
+          storageId,
+          processingTarget,
+          croppedAreaPercent,
+          maxEdgeForAspect(aspect),
+        );
+        logImageProcessing("save-complete", {
+          pipeline: "server",
+          format: result.format,
+          byteLength: result.byteLength,
+          storageId: result.storageId,
+          target: processingTarget.type,
+        });
+        stagedStorageIdRef.current = null;
+        await onUpload(result.storageId);
+        setCropOpen(false);
+        resetCropState();
+      } catch (saveError) {
+        const message =
+          saveError instanceof Error
+            ? saveError.message
+            : "Could not save photo.";
+        setCropError(message);
+        setFieldError(message);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    const originalFile = originalFileRef.current;
+    if (!croppedAreaPixels || !originalFile) {
+      return;
+    }
+
     setSaving(true);
     setCropError(null);
     setFieldError(null);
     try {
-      const avifStorageId = await processImageFromStorage(
-        storageId,
-        processingTarget,
-        croppedAreaPercent,
-        maxEdgeForAspect(aspect),
+      const maxEdge = maxEdgeForAspect(aspect);
+      const payload = await buildClientUploadPayload(
+        originalFile,
+        imageSrc,
+        croppedAreaPixels,
+        maxEdge,
       );
-      stagedStorageIdRef.current = null;
-      await onUpload(avifStorageId);
+
+      const storageId = await uploadImageBlob(
+        () => generateUploadUrl({}),
+        payload.body,
+      );
+      logImageProcessing("save-complete", {
+        pipeline: "client",
+        uploadStrategy: payload.strategy,
+        encodeFormat: payload.croppedBlob.type,
+        encodeByteLength: payload.croppedBlob.size,
+        encodeByteLengthMb: (payload.croppedBlob.size / 1024 / 1024).toFixed(2),
+        format: payload.body.type,
+        byteLength: payload.body.size,
+        byteLengthMb: (payload.body.size / 1024 / 1024).toFixed(2),
+        inputFileSize: originalFile.size,
+        maxEdge,
+        storageId,
+        target: processingTarget.type,
+      });
+      await onUpload(storageId);
       setCropOpen(false);
       resetCropState();
     } catch (saveError) {
@@ -255,9 +351,10 @@ export function ImageUploadField({
     saving ||
     uploading ||
     !previewSynced ||
-    !croppedAreaPercent ||
     !imageSrc ||
-    !stagedStorageIdRef.current;
+    (useServerPipeline
+      ? !stagedStorageIdRef.current || !croppedAreaPercent
+      : !croppedAreaPixels);
 
   return (
     <Field>

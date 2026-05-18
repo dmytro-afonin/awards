@@ -17,29 +17,34 @@ async function canvasToBlob(
   mime: string,
   quality?: number,
 ): Promise<BlobResult> {
+  const label =
+    quality === undefined
+      ? `${mime} (browser default)`
+      : `${mime} q=${quality}`;
   return new Promise((resolve) => {
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          resolve({
-            requested: mime,
-            actual: "",
-            bytes: 0,
-            match: false,
-            error: "toBlob returned null",
-          });
-          return;
-        }
+    const onBlob = (blob: Blob | null) => {
+      if (!blob) {
         resolve({
-          requested: mime,
-          actual: blob.type || "(empty)",
-          bytes: blob.size,
-          match: blob.type === mime,
+          requested: label,
+          actual: "",
+          bytes: 0,
+          match: false,
+          error: "toBlob returned null",
         });
-      },
-      mime,
-      quality,
-    );
+        return;
+      }
+      resolve({
+        requested: label,
+        actual: blob.type || "(empty)",
+        bytes: blob.size,
+        match: blob.type === mime,
+      });
+    };
+    if (quality !== undefined) {
+      canvas.toBlob(onBlob, mime, quality);
+    } else {
+      canvas.toBlob(onBlob, mime);
+    }
   });
 }
 
@@ -94,9 +99,9 @@ export default function HeicCanvasTestPage() {
 
       setResults(
         await Promise.all([
-          canvasToBlob(canvas, "image/jpeg", 0.92),
-          canvasToBlob(canvas, "image/jpeg", 1),
-          canvasToBlob(canvas, "image/webp", 0.92),
+          canvasToBlob(canvas, "image/jpeg"),
+          canvasToBlob(canvas, "image/webp"),
+          canvasToBlob(canvas, "image/avif"),
           canvasToBlob(canvas, "image/png"),
         ]),
       );

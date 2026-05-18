@@ -1,9 +1,6 @@
 import sharp from "sharp";
 import type { CropPercent } from "@/lib/crop-percent";
-import {
-  IMAGE_AVIF_EFFORT,
-  IMAGE_ENCODE_QUALITY,
-} from "@/lib/image-process-config";
+import { logImageProcessing } from "@/lib/image-processing-log";
 import { heicBufferToJpeg } from "@/server/heic-to-jpeg";
 
 type OutputFormat = "jpeg" | "avif" | "webp" | "png";
@@ -117,25 +114,13 @@ async function encodeFormat(
   let buffer: Buffer;
   switch (format) {
     case "jpeg":
-      buffer = await pipeline
-        .clone()
-        .jpeg({ quality: IMAGE_ENCODE_QUALITY })
-        .toBuffer();
+      buffer = await pipeline.clone().jpeg().toBuffer();
       break;
     case "avif":
-      buffer = await pipeline
-        .clone()
-        .avif({
-          quality: IMAGE_ENCODE_QUALITY,
-          effort: IMAGE_AVIF_EFFORT,
-        })
-        .toBuffer();
+      buffer = await pipeline.clone().avif().toBuffer();
       break;
     case "webp":
-      buffer = await pipeline
-        .clone()
-        .webp({ quality: IMAGE_ENCODE_QUALITY })
-        .toBuffer();
+      buffer = await pipeline.clone().webp().toBuffer();
       break;
     case "png":
       buffer = await pipeline.clone().png().toBuffer();
@@ -176,21 +161,21 @@ export async function processStorageImageToSmallest(
     ALL_OUTPUT_FORMATS.map((format) => encodeFormat(pipeline, format)),
   );
 
-  return pickSmallest(encoded);
+  const winner = pickSmallest(encoded);
+  logImageProcessing("server-encode-race", {
+    pipeline: "server",
+    candidates: encoded.map((candidate) => ({
+      format: candidate.format,
+      byteLength: candidate.byteLength,
+    })),
+    format: winner.format,
+    byteLength: winner.byteLength,
+  });
+
+  return winner;
 }
 
 export async function bufferToDisplayJpeg(buffer: Buffer): Promise<Buffer> {
   const decoded = await decodeForProcessing(buffer);
-  return sharp(decoded).rotate().jpeg({ quality: 100 }).toBuffer();
-}
-
-/** @deprecated Use processStorageImageToSmallest */
-export async function processStorageImageToAvif(
-  buffer: Buffer,
-  crop: CropPercent,
-  maxEdge: number,
-): Promise<Buffer> {
-  const pipeline = await buildCroppedPipeline(buffer, crop, maxEdge);
-  const result = await encodeFormat(pipeline, "avif");
-  return result.buffer;
+  return sharp(decoded).rotate().jpeg().toBuffer();
 }

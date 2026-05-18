@@ -8,8 +8,7 @@ import { createAuthenticatedConvexClient } from "@/server/convex-authenticated-c
 import { processStorageImageToSmallest } from "@/server/process-storage-image";
 
 export const runtime = "nodejs";
-/** AVIF effort 9 on large sources can take 15–60s+ */
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const authState = await auth();
