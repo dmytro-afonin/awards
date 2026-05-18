@@ -1,8 +1,14 @@
 "use client";
 
+import { Dialog } from "@base-ui/react/dialog";
 import { api } from "@cvx/_generated/api";
 import type { Id } from "@cvx/_generated/dataModel";
-import { RiImageAddLine, RiImageEditLine } from "@remixicon/react";
+import {
+  RiCloseLine,
+  RiImageAddLine,
+  RiImageEditLine,
+  RiLoader4Line,
+} from "@remixicon/react";
 import { useMutation } from "convex/react";
 import { useCallback, useId, useRef, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
@@ -14,19 +20,19 @@ import {
   FieldDescription,
   FieldLabel,
 } from "@/components/ui/field";
+import { isAllowedImageFile } from "@/lib/crop-image";
+import type { CropPercent } from "@/lib/crop-percent";
+import { maxEdgeForAspect } from "@/lib/image-process-config";
+import type { ImageProcessingTarget } from "@/lib/image-processing-target";
+import { processImageFromStorage } from "@/lib/process-image-from-storage";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { getCroppedImageBlob } from "@/lib/crop-image";
-import { uploadImageBlob } from "@/lib/upload-convex-image";
+  fetchCropPreviewBlob,
+  uploadOriginalToStorage,
+} from "@/lib/stage-image-upload";
 import { cn } from "@/lib/utils";
 
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+const FILE_ACCEPT =
+  "image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif,.heic,.heif";
 
 export type ImageUploadFieldProps = {
   label: string;
@@ -35,6 +41,8 @@ export type ImageUploadFieldProps = {
   aspect: number;
   previewClassName?: string;
   disabled?: boolean;
+  processingTarget: ImageProcessingTarget;
+  /** Called with the processed AVIF storage id after crop + encode succeed. */
   onUpload: (storageId: Id<"_storage">) => Promise<void>;
   onRemove: () => Promise<void>;
 };
@@ -46,41 +54,66 @@ export function ImageUploadField({
   aspect,
   previewClassName,
   disabled,
+  processingTarget,
   onUpload,
   onRemove,
 }: ImageUploadFieldProps) {
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const stagedStorageIdRef = useRef<Id<"_storage"> | null>(null);
+  const stagingGenerationRef = useRef(0);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  const abandonStagedImage = useMutation(
+    api.imageProcessing.abandonStagedImage,
+  );
 
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [cropOpen, setCropOpen] = useState(false);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [croppedAreaPercent, setCroppedAreaPercent] =
+    useState<CropPercent | null>(null);
+  const [uploading, setUploading] = useState(false);
+  /** Crop % must match server-oriented preview (not raw browser decode). */
+  const [previewSynced, setPreviewSynced] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [cropError, setCropError] = useState<string | null>(null);
+
+  const revokeImageSrc = useCallback((url: string | null) => {
+    if (url?.startsWith("blob:")) {
+      URL.revokeObjectURL(url);
+    }
+  }, []);
 
   const resetCropState = useCallback(() => {
+    stagedStorageIdRef.current = null;
     setImageSrc((current) => {
-      if (current?.startsWith("blob:")) {
-        URL.revokeObjectURL(current);
-      }
+      revokeImageSrc(current);
       return null;
     });
     setCrop({ x: 0, y: 0 });
     setZoom(1);
-    setCroppedAreaPixels(null);
-    setError(null);
-  }, []);
+    setCroppedAreaPercent(null);
+    setCropError(null);
+    setPreviewSynced(false);
+  }, [revokeImageSrc]);
 
-  const closeSheet = useCallback(() => {
-    setSheetOpen(false);
+  const closeCropDialog = useCallback(() => {
+    const stagedId = stagedStorageIdRef.current;
+    stagingGenerationRef.current += 1;
+    setUploading(false);
+    setCropOpen(false);
     resetCropState();
-  }, [resetCropState]);
+    if (stagedId) {
+      void abandonStagedImage({ storageId: stagedId }).catch(() => {
+        /* Staging file may already be linked or deleted */
+      });
+    }
+  }, [abandonStagedImage, resetCropState]);
 
-  const onCropComplete = useCallback((_: Area, pixels: Area) => {
-    setCroppedAreaPixels(pixels);
+  const onCropComplete = useCallback((area: Area) => {
+    setCroppedAreaPercent(area);
   }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,48 +121,104 @@ export function ImageUploadField({
     event.target.value = "";
     if (!file || disabled) return;
 
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      setError("Use a JPEG, PNG, WebP, or AVIF image.");
+    if (!isAllowedImageFile(file)) {
+      setFieldError("Use a JPEG, PNG, WebP, AVIF, or HEIC photo.");
       return;
     }
 
-    setError(null);
+    setFieldError(null);
     resetCropState();
-    setImageSrc(URL.createObjectURL(file));
-    setSheetOpen(true);
+
+    setCropOpen(true);
+    setUploading(true);
+    setPreviewSynced(false);
+
+    const generation = stagingGenerationRef.current + 1;
+    stagingGenerationRef.current = generation;
+
+    void (async () => {
+      try {
+        const storageId = await uploadOriginalToStorage(
+          () => generateUploadUrl({}),
+          file,
+        );
+        if (stagingGenerationRef.current !== generation) {
+          return;
+        }
+        stagedStorageIdRef.current = storageId;
+
+        const previewBlob = await fetchCropPreviewBlob(storageId);
+        if (stagingGenerationRef.current !== generation) {
+          return;
+        }
+        setImageSrc((current) => {
+          revokeImageSrc(current);
+          return URL.createObjectURL(previewBlob);
+        });
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
+        setCroppedAreaPercent(null);
+        setPreviewSynced(true);
+      } catch (loadError) {
+        if (stagingGenerationRef.current !== generation) {
+          return;
+        }
+        stagedStorageIdRef.current = null;
+        const message =
+          loadError instanceof Error
+            ? loadError.message
+            : "Could not upload this photo.";
+        setCropError(message);
+      } finally {
+        if (stagingGenerationRef.current === generation) {
+          setUploading(false);
+        }
+      }
+    })();
   };
 
   const handleSaveCrop = async () => {
-    if (!imageSrc || !croppedAreaPixels || disabled) return;
-    setBusy(true);
-    setError(null);
+    const storageId = stagedStorageIdRef.current;
+    if (
+      !storageId ||
+      !croppedAreaPercent ||
+      !imageSrc ||
+      !previewSynced ||
+      disabled ||
+      uploading
+    ) {
+      return;
+    }
+    setSaving(true);
+    setCropError(null);
+    setFieldError(null);
     try {
-      const blob = await getCroppedImageBlob(imageSrc, croppedAreaPixels, {
-        maxWidth: aspect >= 1 ? 1920 : 1200,
-        mimeType: "image/webp",
-        quality: 0.85,
-      });
-      const storageId = await uploadImageBlob(
-        () => generateUploadUrl({}),
-        blob,
+      const avifStorageId = await processImageFromStorage(
+        storageId,
+        processingTarget,
+        croppedAreaPercent,
+        maxEdgeForAspect(aspect),
       );
-      await onUpload(storageId);
-      closeSheet();
-    } catch (uploadError) {
+      stagedStorageIdRef.current = null;
+      await onUpload(avifStorageId);
+      setCropOpen(false);
+      resetCropState();
+    } catch (saveError) {
       const message =
-        uploadError instanceof Error
-          ? uploadError.message
-          : "Could not upload image.";
-      setError(message);
+        saveError instanceof Error
+          ? saveError.message
+          : "Could not save photo.";
+      setCropError(message);
+      setFieldError(message);
     } finally {
-      setBusy(false);
+      setSaving(false);
     }
   };
 
   const handleRemove = async () => {
-    if (disabled || busy) return;
-    setBusy(true);
-    setError(null);
+    if (disabled || saving) return;
+    setSaving(true);
+    setFieldError(null);
     try {
       await onRemove();
     } catch (removeError) {
@@ -137,11 +226,19 @@ export function ImageUploadField({
         removeError instanceof Error
           ? removeError.message
           : "Could not remove image.";
-      setError(message);
+      setFieldError(message);
     } finally {
-      setBusy(false);
+      setSaving(false);
     }
   };
+
+  const saveDisabled =
+    saving ||
+    uploading ||
+    !previewSynced ||
+    !croppedAreaPercent ||
+    !imageSrc ||
+    !stagedStorageIdRef.current;
 
   return (
     <Field>
@@ -170,22 +267,28 @@ export function ImageUploadField({
               <span className="text-xs">No photo</span>
             </div>
           )}
+          {saving ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80 text-sm text-muted-foreground">
+              <RiLoader4Line className="size-6 animate-spin" aria-hidden />
+              Processing photo…
+            </div>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <input
             ref={fileInputRef}
             id={inputId}
             type="file"
-            accept={ACCEPTED_TYPES.join(",")}
+            accept={FILE_ACCEPT}
             className="sr-only"
-            disabled={disabled || busy}
+            disabled={disabled || saving}
             onChange={handleFileChange}
           />
           <Button
             type="button"
             variant="outline"
             size="sm"
-            disabled={disabled || busy}
+            disabled={disabled || saving}
             className="gap-1.5"
             onClick={() => fileInputRef.current?.click()}
           >
@@ -201,84 +304,142 @@ export function ImageUploadField({
               type="button"
               variant="ghost"
               size="sm"
-              disabled={disabled || busy}
+              disabled={disabled || saving}
               onClick={() => void handleRemove()}
             >
               Remove
             </Button>
           ) : null}
         </div>
-        {error ? (
+        {fieldError ? (
           <p className="text-sm text-destructive" role="alert">
-            {error}
+            {fieldError}
           </p>
         ) : null}
       </FieldContent>
 
-      <Sheet open={sheetOpen} onOpenChange={(open) => !open && closeSheet()}>
-        <SheetContent side="bottom" className="max-h-[90vh] gap-0 p-0">
-          <SheetHeader className="border-b border-border">
-            <SheetTitle>Crop photo</SheetTitle>
-            <SheetDescription>
-              Drag to reposition. Exported as WebP for smaller file size.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="relative h-64 w-full bg-muted sm:h-80">
-            {imageSrc ? (
-              <Cropper
-                image={imageSrc}
-                crop={crop}
-                zoom={zoom}
-                aspect={aspect}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={onCropComplete}
+      <Dialog.Root
+        open={cropOpen}
+        onOpenChange={(open) => {
+          if (!open && saving) {
+            return;
+          }
+          if (!open) {
+            closeCropDialog();
+          }
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity supports-backdrop-filter:backdrop-blur-sm data-ending-style:opacity-0 data-starting-style:opacity-0" />
+          <Dialog.Popup
+            className={cn(
+              "fixed top-1/2 left-1/2 z-50 flex max-h-[min(90vh,40rem)] w-[min(calc(100%-2rem),28rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl",
+              "transition duration-200 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0",
+            )}
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+              <div className="flex flex-col gap-1">
+                <Dialog.Title className="font-heading text-base font-medium">
+                  Crop photo
+                </Dialog.Title>
+                <Dialog.Description className="text-sm text-muted-foreground">
+                  Drag to frame your photo, then save.
+                </Dialog.Description>
+              </div>
+              <Dialog.Close
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0"
+                    disabled={saving}
+                  />
+                }
+              >
+                <RiCloseLine className="size-4" />
+                <span className="sr-only">Close</span>
+              </Dialog.Close>
+            </div>
+
+            <div
+              className="relative mx-auto w-full shrink-0 bg-muted"
+              style={{
+                aspectRatio: aspect,
+                height: "min(50vh, 20rem)",
+              }}
+            >
+              {imageSrc && previewSynced ? (
+                <Cropper
+                  image={imageSrc}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={aspect}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                />
+              ) : (
+                <div className="flex size-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                  <RiLoader4Line
+                    className="size-8 animate-spin opacity-70"
+                    aria-hidden
+                  />
+                  <span className="text-sm">Preparing preview…</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 px-5 py-4">
+              <label
+                htmlFor={`${inputId}-zoom`}
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Zoom
+              </label>
+              <input
+                id={`${inputId}-zoom`}
+                type="range"
+                min={1}
+                max={3}
+                step={0.05}
+                value={zoom}
+                disabled={!previewSynced || saving}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-full accent-primary"
               />
+            </div>
+
+            {cropError ? (
+              <p className="px-5 pb-2 text-sm text-destructive" role="alert">
+                {cropError}
+              </p>
             ) : null}
-          </div>
-          <div className="flex flex-col gap-2 px-6 py-4">
-            <label
-              htmlFor={`${inputId}-zoom`}
-              className="text-xs font-medium text-muted-foreground"
-            >
-              Zoom
-            </label>
-            <input
-              id={`${inputId}-zoom`}
-              type="range"
-              min={1}
-              max={3}
-              step={0.05}
-              value={zoom}
-              disabled={busy}
-              onChange={(e) => setZoom(Number(e.target.value))}
-              className="w-full accent-primary"
-            />
-          </div>
-          {error ? (
-            <p className="px-6 pb-2 text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <SheetFooter className="flex-row justify-end border-t border-border">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={closeSheet}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={busy || !croppedAreaPixels}
-              onClick={() => void handleSaveCrop()}
-            >
-              {busy ? "Saving…" : "Save photo"}
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+
+            <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={saving}
+                onClick={closeCropDialog}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={saveDisabled}
+                onClick={() => void handleSaveCrop()}
+              >
+                {saving
+                  ? "Processing…"
+                  : uploading
+                    ? "Uploading…"
+                    : "Save photo"}
+              </Button>
+            </div>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
     </Field>
   );
 }
