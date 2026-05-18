@@ -3,12 +3,18 @@ import type { CropPercent } from "@/lib/crop-percent";
 import type { ImageProcessingTarget } from "@/lib/image-processing-target";
 import { parseFetchErrorMessage } from "@/lib/parse-fetch-error-message";
 
+export type ProcessImageFromStorageResult = {
+  storageId: Id<"_storage">;
+  format: string;
+  byteLength: number;
+};
+
 export async function processImageFromStorage(
   sourceStorageId: Id<"_storage">,
   target: ImageProcessingTarget,
   crop: CropPercent,
   maxEdge: number,
-): Promise<Id<"_storage">> {
+): Promise<ProcessImageFromStorageResult> {
   const response = await fetch("/api/images/process-from-storage", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -23,6 +29,5 @@ export async function processImageFromStorage(
     throw new Error(message);
   }
 
-  const body = (await response.json()) as { storageId: Id<"_storage"> };
-  return body.storageId;
+  return (await response.json()) as ProcessImageFromStorageResult;
 }
