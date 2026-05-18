@@ -1,20 +1,40 @@
 import type { Id } from "@cvx/_generated/dataModel";
+import type { PublicLayoutId } from "@/lib/public-layout";
+
+function buildPublicSearch(
+  workspaceId: Id<"workspaces">,
+  layout?: PublicLayoutId | null,
+): string {
+  const params = new URLSearchParams({ w: workspaceId });
+  if (layout) {
+    params.set("layout", layout);
+  }
+  return params.toString();
+}
 
 export function publicCampaignPath(
   slug: string,
   workspaceId: Id<"workspaces">,
+  layout?: PublicLayoutId | null,
 ): string {
-  const params = new URLSearchParams({ w: workspaceId });
-  return `/c/${encodeURIComponent(slug)}?${params.toString()}`;
+  return `/c/${encodeURIComponent(slug)}?${buildPublicSearch(workspaceId, layout)}`;
+}
+
+export function publicCategoriesPath(
+  slug: string,
+  workspaceId: Id<"workspaces">,
+  layout?: PublicLayoutId | null,
+): string {
+  return `/c/${encodeURIComponent(slug)}/categories?${buildPublicSearch(workspaceId, layout)}`;
 }
 
 export function publicCategoryPath(
   slug: string,
   workspaceId: Id<"workspaces">,
   categoryId: Id<"campaignCategories">,
+  layout?: PublicLayoutId | null,
 ): string {
-  const params = new URLSearchParams({ w: workspaceId });
-  return `/c/${encodeURIComponent(slug)}/categories/${categoryId}?${params.toString()}`;
+  return `/c/${encodeURIComponent(slug)}/categories/${categoryId}?${buildPublicSearch(workspaceId, layout)}`;
 }
 
 export function parseWorkspaceIdFromSearch(

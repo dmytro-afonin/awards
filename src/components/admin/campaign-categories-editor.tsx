@@ -87,7 +87,7 @@ export function CampaignCategoriesEditor({
           nominees.
         </FieldDescription>
 
-        {readiness && !readiness.canMarkReady ? (
+        {readiness && !readiness.canLaunch ? (
           <p className="text-sm text-amber-700 dark:text-amber-300">
             {readiness.categoryCount === 0
               ? "Add a category and at least two nominees per category."

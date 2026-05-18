@@ -37,14 +37,14 @@ export async function getCategoryNomineeCounts(
   return result.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function assertCanMarkReady(
+export async function assertCanLaunchContent(
   ctx: Ctx,
   campaignId: Id<"campaigns">,
 ): Promise<void> {
   const counts = await getCategoryNomineeCounts(ctx, campaignId);
   if (counts.length === 0) {
     throw new Error(
-      "Add at least one category with at least two nominees before marking as ready.",
+      "Add at least one category with at least two nominees before launching.",
     );
   }
   const invalid = counts.filter(
@@ -55,6 +55,21 @@ export async function assertCanMarkReady(
     throw new Error(
       `Each category needs at least ${MIN_NOMINEES_PER_CATEGORY} nominees. Update: ${names}.`,
     );
+  }
+}
+
+/** @deprecated Use assertCanLaunchContent */
+export const assertCanMarkReady = assertCanLaunchContent;
+
+export async function canLaunchContent(
+  ctx: Ctx,
+  campaignId: Id<"campaigns">,
+): Promise<boolean> {
+  try {
+    await assertCanLaunchContent(ctx, campaignId);
+    return true;
+  } catch {
+    return false;
   }
 }
 

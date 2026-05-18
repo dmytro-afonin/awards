@@ -13,6 +13,12 @@ export function normalizeCampaignLifecycle(
   if (LEGACY_LAUNCHED_LIFECYCLES.has(lifecycle)) {
     return "launched";
   }
+  if (lifecycle === "ready") {
+    return "draft";
+  }
+  if (lifecycle === "deleted") {
+    return "archived";
+  }
   return lifecycle as CampaignLifecycle;
 }
 
@@ -29,30 +35,65 @@ export function lifecycleBadgeClass(lifecycle: string): string {
   );
 }
 
-export function canLaunchCampaign(lifecycle: string): boolean {
-  return normalizeCampaignLifecycle(lifecycle) === "ready";
+export function canLaunchFromDraft(lifecycle: string): boolean {
+  return normalizeCampaignLifecycle(lifecycle) === "draft";
 }
 
-export function canFinishCampaign(lifecycle: string): boolean {
+export function canGoLiveAndVote(lifecycle: string): boolean {
+  return normalizeCampaignLifecycle(lifecycle) === "draft";
+}
+
+export function canOpenVoting(lifecycle: string): boolean {
   return normalizeCampaignLifecycle(lifecycle) === "launched";
 }
 
+export function canCloseVoting(lifecycle: string): boolean {
+  return normalizeCampaignLifecycle(lifecycle) === "vote_live";
+}
+
+export function canFinishCampaign(lifecycle: string): boolean {
+  return normalizeCampaignLifecycle(lifecycle) === "vote_ended";
+}
+
 export function canDeleteCampaign(lifecycle: string): boolean {
-  const state = normalizeCampaignLifecycle(lifecycle);
-  return state === "draft" || state === "ready";
+  return normalizeCampaignLifecycle(lifecycle) === "draft";
 }
 
 export function canArchiveCampaign(lifecycle: string): boolean {
   return normalizeCampaignLifecycle(lifecycle) === "finished";
 }
 
-export function canEditCampaignLifecycle(lifecycle: string): boolean {
+export function canEditCampaignMetadata(lifecycle: string): boolean {
   return normalizeCampaignLifecycle(lifecycle) === "draft";
 }
 
-/** Pencil Edit in list/card row actions (ready only; draft uses lifecycle Edit). */
-export function canShowRowEditLink(lifecycle: string): boolean {
-  return normalizeCampaignLifecycle(lifecycle) === "ready";
+export function canManageCampaignContent(lifecycle: string): boolean {
+  return normalizeCampaignLifecycle(lifecycle) === "draft";
+}
+
+export function canViewPublicCampaign(lifecycle: string): boolean {
+  const state = normalizeCampaignLifecycle(lifecycle);
+  return (
+    state === "launched" ||
+    state === "vote_live" ||
+    state === "vote_ended" ||
+    state === "finished"
+  );
+}
+
+/** @deprecated */
+export function canLaunchCampaign(lifecycle: string): boolean {
+  return canLaunchFromDraft(lifecycle);
+}
+
+/** @deprecated */
+export function canEditCampaignLifecycle(lifecycle: string): boolean {
+  return canEditCampaignMetadata(lifecycle);
+}
+
+/** @deprecated */
+export function canShowRowEditLink(_lifecycle: string): boolean {
+  return false;
 }
 
 export function canShowRowDelete(lifecycle: string): boolean {

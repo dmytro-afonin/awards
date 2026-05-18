@@ -2,47 +2,94 @@
 
 import { api } from "@cvx/_generated/api";
 import { useMutation } from "convex/react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
-import { buttonVariants } from "@/components/ui/button";
+import { CampaignMetadataFields } from "@/components/admin/campaign-metadata-fields";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
+import type { CampaignVisibility } from "@/lib/campaign-visibility";
 
 export default function AdminNewCampaignPage() {
   const router = useRouter();
   const { workspaceId, showShareMessage } = useAdmin();
   const createCampaign = useMutation(api.campaigns.create);
-  const started = useRef(false);
 
-  useEffect(() => {
-    if (!workspaceId || started.current) return;
-    started.current = true;
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [description, setDescription] = useState("");
+  const [visibility, setVisibility] = useState<CampaignVisibility>("private");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const slugTouchedRef = useRef(false);
 
-    void (async () => {
-      try {
-        const id = await createCampaign({
-          workspaceId,
-          name: "Untitled campaign",
-          visibility: "private",
-        });
-        router.replace(`/admin/campaigns/${id}`);
-      } catch (error) {
-        started.current = false;
-        showShareMessage(
-          error instanceof Error ? error.message : "Could not create campaign.",
-          "error",
-        );
-      }
-    })();
-  }, [workspaceId, createCampaign, router, showShareMessage]);
+  const handleSlugChange = useCallback((value: string) => {
+    slugTouchedRef.current = true;
+    setSlug(value);
+  }, []);
+
+  const handleCreate = useCallback(async () => {
+    const trimmed = name.trim();
+    const trimmedSlug = slug.trim();
+    if (!trimmed) {
+      setFormError("Campaign name is required.");
+      return;
+    }
+    if (!trimmedSlug) {
+      setFormError("Slug is required.");
+      return;
+    }
+    if (!workspaceId) {
+      setFormError("Select a workspace in the sidebar first.");
+      return;
+    }
+
+    setFormError(null);
+    setCreating(true);
+    try {
+      const id = await createCampaign({
+        workspaceId,
+        name: trimmed,
+        slug: trimmedSlug,
+        description: description.trim() || undefined,
+        visibility,
+      });
+      showShareMessage("Campaign created");
+      router.replace(`/admin/campaigns/${id}`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not create campaign.";
+      setFormError(message);
+    } finally {
+      setCreating(false);
+    }
+  }, [
+    name,
+    slug,
+    description,
+    visibility,
+    workspaceId,
+    createCampaign,
+    router,
+    showShareMessage,
+  ]);
+
+  const handleCancel = useCallback(() => {
+    router.push("/admin");
+  }, [router]);
 
   if (!workspaceId) {
     return (
@@ -54,24 +101,53 @@ export default function AdminNewCampaignPage() {
               Select a workspace in the sidebar to create a campaign.
             </EmptyDescription>
           </EmptyHeader>
-          <EmptyContent>
-            <Link
-              href="/admin"
-              className={buttonVariants({ variant: "outline" })}
-            >
-              Back to campaigns
-            </Link>
-          </EmptyContent>
         </Empty>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3 p-4 md:p-6" aria-busy="true">
-      <Skeleton className="h-8 w-40" />
-      <Skeleton className="h-64 w-full max-w-xl" />
-      <p className="text-sm text-muted-foreground">Creating campaign…</p>
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 md:p-6 lg:max-w-4xl">
+      <Card>
+        <CardHeader>
+          <CardTitle>New campaign</CardTitle>
+          <CardDescription>
+            Set up the basics. Nothing is saved until you click Create. Add
+            categories and a cover photo after the campaign exists.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CampaignMetadataFields
+            values={{ name, slug, description, visibility }}
+            onNameChange={setName}
+            onSlugChange={handleSlugChange}
+            onDescriptionChange={setDescription}
+            onVisibilityChange={setVisibility}
+            disabled={creating}
+            formError={formError}
+            autoSlugFromName
+            slugTouchedRef={slugTouchedRef}
+            showCover
+          />
+        </CardContent>
+        <CardFooter className="flex flex-wrap gap-2 border-t border-border pt-6">
+          <Button
+            type="button"
+            onClick={handleCreate}
+            disabled={creating || !name.trim()}
+          >
+            {creating ? "Creating…" : "Create"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCancel}
+            disabled={creating}
+          >
+            Cancel
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

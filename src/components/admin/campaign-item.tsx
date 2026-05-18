@@ -1,12 +1,7 @@
 "use client";
 
 import { api } from "@cvx/_generated/api";
-import {
-  RiDeleteBinLine,
-  RiEyeLine,
-  RiPencilLine,
-  RiShareLine,
-} from "@remixicon/react";
+import { RiDeleteBinLine, RiEyeLine, RiShareLine } from "@remixicon/react";
 import { useMutation } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,7 +12,6 @@ import { CampaignVisibilityIcon } from "@/components/campaign-visibility";
 
 export type { CampaignRow } from "@/components/admin/campaign-row";
 
-import { CampaignLifecycleActions } from "@/components/admin/campaign-lifecycle-actions";
 import { CampaignLifecycleBadge } from "@/components/admin/campaign-lifecycle-badge";
 import { CampaignStats } from "@/components/admin/campaign-stats";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -37,7 +31,7 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import { canShowRowDelete, canShowRowEditLink } from "@/lib/campaign-lifecycle";
+import { canShowRowDelete } from "@/lib/campaign-lifecycle";
 import { publicCampaignPath } from "@/lib/public-campaign-url";
 import { cn } from "@/lib/utils";
 
@@ -56,9 +50,7 @@ function CampaignRowActions({
   const { showShareMessage } = useAdmin();
   const removeCampaign = useMutation(api.campaigns.remove);
 
-  const editHref = `/admin/campaigns/${campaign._id}`;
   const viewHref = publicCampaignPath(campaign.slug, campaign.workspaceId);
-  const showRowEditLink = canShowRowEditLink(campaign.lifecycle);
   const showRowDelete = canShowRowDelete(campaign.lifecycle);
 
   const handleShare = async () => {
@@ -102,12 +94,6 @@ function CampaignRowActions({
         iconOnly ? "justify-end" : "gap-2",
       )}
     >
-      <CampaignLifecycleActions
-        campaignId={campaign._id}
-        campaignName={campaign.name}
-        lifecycle={campaign.lifecycle}
-        size="sm"
-      />
       <Button
         variant="ghost"
         size={iconOnly ? "icon-sm" : "sm"}
@@ -126,26 +112,12 @@ function CampaignRowActions({
           variant: "ghost",
           size: iconOnly ? "icon-sm" : "sm",
         })}
-        aria-label="View"
-        title="View"
+        aria-label="View public"
+        title="View public"
       >
         <RiEyeLine className="size-4" />
         {!iconOnly ? "View" : null}
       </Link>
-      {showRowEditLink ? (
-        <Link
-          href={editHref}
-          className={buttonVariants({
-            variant: "ghost",
-            size: iconOnly ? "icon-sm" : "sm",
-          })}
-          aria-label="Edit"
-          title="Edit"
-        >
-          <RiPencilLine className="size-4" />
-          {!iconOnly ? "Edit" : null}
-        </Link>
-      ) : null}
       {showRowDelete ? (
         <Button
           variant="ghost"
@@ -198,12 +170,12 @@ export function CampaignTable({ campaigns }: { campaigns: CampaignRow[] }) {
 }
 
 export function CampaignCard({ campaign }: { campaign: CampaignRow }) {
-  const editHref = `/admin/campaigns/${campaign._id}`;
+  const detailHref = `/admin/campaigns/${campaign._id}`;
 
   return (
     <Card className="overflow-hidden">
       <Link
-        href={editHref}
+        href={detailHref}
         className="block text-foreground no-underline outline-none transition-opacity hover:opacity-95 focus-visible:ring-2 focus-visible:ring-ring"
       >
         {campaign.imageUrl ? (
@@ -243,12 +215,12 @@ export function CampaignCard({ campaign }: { campaign: CampaignRow }) {
 }
 
 export function CampaignListRow({ campaign }: { campaign: CampaignRow }) {
-  const editHref = `/admin/campaigns/${campaign._id}`;
+  const detailHref = `/admin/campaigns/${campaign._id}`;
 
   return (
     <Item variant="outline" size="default" className="flex-col sm:flex-row">
       <Link
-        href={editHref}
+        href={detailHref}
         className="flex min-w-0 flex-1 flex-col gap-4 text-foreground no-underline outline-none sm:flex-row sm:items-center sm:gap-4 focus-visible:ring-2 focus-visible:ring-ring"
       >
         {campaign.imageUrl ? (

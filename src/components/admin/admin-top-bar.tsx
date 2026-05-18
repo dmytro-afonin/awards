@@ -28,23 +28,6 @@ export function AdminTopBar() {
     workspaceId ? { workspaceId } : "skip",
   );
 
-  const pageTitle = (() => {
-    if (
-      pathname === "/admin/campaigns/new" ||
-      pathname === "/admin/campaigns/new/"
-    ) {
-      return "New campaign";
-    }
-    if (
-      pathname.startsWith("/admin/campaigns/") &&
-      pathname !== "/admin/campaigns/new" &&
-      pathname !== "/admin/campaigns/new/"
-    ) {
-      return "Edit campaign";
-    }
-    return "Campaigns";
-  })();
-
   const isCampaignListRoot = pathname === "/admin" || pathname === "/admin/";
 
   const goToNewCampaign = () => {
@@ -65,7 +48,7 @@ export function AdminTopBar() {
       return;
     }
 
-    const match = /^\/admin\/campaigns\/([^/]+)\/?$/.exec(pathname);
+    const match = /^\/admin\/campaigns\/([^/]+)(?:\/|$)/.exec(pathname);
     if (match?.[1] && match[1] !== "new") {
       const fromUrl = match[1] as Id<"campaigns">;
       if (campaigns === undefined) {
@@ -87,8 +70,25 @@ export function AdminTopBar() {
     setSelectedCampaignId(null);
   }, [pathname, campaigns, setSelectedCampaignId]);
 
+  const pageTitle = (() => {
+    if (
+      pathname === "/admin/campaigns/new" ||
+      pathname === "/admin/campaigns/new/"
+    ) {
+      return "New campaign";
+    }
+    const campaignMatch = /^\/admin\/campaigns\/([^/]+)/.exec(pathname);
+    if (campaignMatch?.[1] && campaignMatch[1] !== "new") {
+      if (pathname.includes("/edit")) return "Edit campaign";
+      if (pathname.includes("/content")) return "Categories & nominees";
+      if (pathname.includes("/preview/")) return "Layout preview";
+      return "Campaign";
+    }
+    return "Campaigns";
+  })();
+
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
+    <header className="z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4 shadow-sm">
       <SidebarTrigger className="-ml-1 shrink-0" />
       {/* Do not use w-full here — in a flex row it steals 100% of the header and collapses siblings. */}
       <div className="w-44 min-w-0 shrink-0 sm:w-56">

@@ -4,27 +4,30 @@ import { getMembership } from "./access";
 import { normalizeCampaignLifecycle } from "./campaignLifecycleNormalize";
 import { resolveStorageImageUrl } from "./images";
 
-export type PublicLifecycle = "launched" | "finished";
+export type PublicLifecycle =
+  | "launched"
+  | "vote_live"
+  | "vote_ended"
+  | "finished";
 
 export function isPubliclyVisibleLifecycle(
   lifecycle: Doc<"campaigns">["lifecycle"],
 ): lifecycle is PublicLifecycle {
   const normalized = normalizeCampaignLifecycle(lifecycle as string);
-  return normalized === "launched" || normalized === "finished";
+  return (
+    normalized === "launched" ||
+    normalized === "vote_live" ||
+    normalized === "vote_ended" ||
+    normalized === "finished"
+  );
 }
 
-export function isVotingOpen(campaign: Doc<"campaigns">, now: number): boolean {
+export function isVotingOpen(
+  campaign: Doc<"campaigns">,
+  _now: number,
+): boolean {
   const lifecycle = normalizeCampaignLifecycle(campaign.lifecycle as string);
-  if (lifecycle !== "launched") {
-    return false;
-  }
-  if (campaign.votingStartsAt !== undefined && now < campaign.votingStartsAt) {
-    return false;
-  }
-  if (campaign.votingEndsAt !== undefined && now > campaign.votingEndsAt) {
-    return false;
-  }
-  return true;
+  return lifecycle === "vote_live";
 }
 
 export async function isWorkspaceMember(

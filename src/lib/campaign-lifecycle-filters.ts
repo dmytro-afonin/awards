@@ -2,17 +2,19 @@ import type { CampaignLifecycle } from "@/components/admin/campaign-labels";
 
 export const CAMPAIGN_LIFECYCLE_FILTER_OPTIONS: CampaignLifecycle[] = [
   "draft",
-  "ready",
   "launched",
+  "vote_live",
+  "vote_ended",
   "finished",
-  "deleted",
+  "archived",
 ];
 
-/** Default list view: all active statuses, hide deleted. */
+/** Default list view: all active statuses, hide archived. */
 export const DEFAULT_CAMPAIGN_LIFECYCLE_FILTERS: CampaignLifecycle[] = [
   "draft",
-  "ready",
   "launched",
+  "vote_live",
+  "vote_ended",
   "finished",
 ];
 

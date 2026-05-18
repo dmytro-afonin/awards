@@ -33,10 +33,11 @@ export function campaignSortAriaLabel(option: CampaignSortOption): string {
 
 const LIFECYCLE_SORT_ORDER: Record<CampaignRow["lifecycle"], number> = {
   draft: 0,
-  ready: 1,
-  launched: 2,
-  finished: 3,
-  deleted: 4,
+  launched: 1,
+  vote_live: 2,
+  vote_ended: 3,
+  finished: 4,
+  archived: 5,
 };
 
 export function sortCampaigns(

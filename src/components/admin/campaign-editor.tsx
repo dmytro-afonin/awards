@@ -2,19 +2,14 @@
 
 import { api } from "@cvx/_generated/api";
 import type { Id } from "@cvx/_generated/dataModel";
-import { RiArrowLeftLine } from "@remixicon/react";
 import { useMutation, useQuery } from "convex/react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { startTransition, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
-import { CampaignCategoriesEditor } from "@/components/admin/campaign-categories-editor";
-import { LIFECYCLE_LABELS } from "@/components/admin/campaign-labels";
-import { CampaignLifecycleActions } from "@/components/admin/campaign-lifecycle-actions";
 import { CampaignLifecycleBadge } from "@/components/admin/campaign-lifecycle-badge";
-import { CampaignVisibilityControls } from "@/components/admin/campaign-visibility-controls";
-import { ImageUploadField } from "@/components/admin/image-upload-field";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { CampaignMetadataFields } from "@/components/admin/campaign-metadata-fields";
+import { VisibilityChangeDialog } from "@/components/admin/visibility-change-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -25,29 +20,16 @@ import {
 } from "@/components/ui/card";
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  canDeleteCampaign,
+  canEditCampaignMetadata,
   normalizeCampaignLifecycle,
 } from "@/lib/campaign-lifecycle";
 import type { CampaignVisibility } from "@/lib/campaign-visibility";
-
-type SaveIntent = "save_draft" | "mark_ready";
 
 type CampaignEditorProps = {
   campaignId: Id<"campaigns">;
@@ -58,145 +40,150 @@ export function CampaignEditor({ campaignId }: CampaignEditorProps) {
   const { workspaceId, setSelectedCampaignId, showShareMessage } = useAdmin();
 
   const campaign = useQuery(api.campaigns.getForAdmin, { campaignId });
-
-  const readiness = useQuery(api.campaignCategories.readinessSummary, {
-    campaignId,
-  });
-
   const updateCampaign = useMutation(api.campaigns.update);
   const setCampaignImage = useMutation(api.campaigns.setImage);
   const clearCampaignImage = useMutation(api.campaigns.clearImage);
-  const removeCampaign = useMutation(api.campaigns.remove);
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<CampaignVisibility>("private");
+  const [initialVisibility, setInitialVisibility] =
+    useState<CampaignVisibility>("private");
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [visibilityDialogOpen, setVisibilityDialogOpen] = useState(false);
+  const pendingSaveRef = useRef<(() => Promise<void>) | null>(null);
+  const initializedCampaignIdRef = useRef<Id<"campaigns"> | null>(null);
+  const slugTouchedRef = useRef(false);
+  const initialSnapshotRef = useRef("");
 
   const campaignLifecycle = campaign
     ? normalizeCampaignLifecycle(campaign.lifecycle)
     : null;
-
-  const isReadyLocked = campaignLifecycle === "ready";
-  const isTerminalLocked =
-    campaignLifecycle === "launched" ||
-    campaignLifecycle === "finished" ||
-    campaignLifecycle === "deleted";
-  const fieldsDisabled = isReadyLocked || isTerminalLocked || saving;
-
-  const canDelete =
-    campaign &&
-    canDeleteCampaign(campaign.lifecycle) &&
-    campaignLifecycle !== "deleted";
-
-  const showDraftReadyActions =
-    campaignLifecycle === "draft" || campaignLifecycle === "ready";
+  const fieldsDisabled =
+    !campaign || !canEditCampaignMetadata(campaign.lifecycle) || saving;
+  const detailHref = `/admin/campaigns/${campaignId}`;
 
   useEffect(() => {
     setSelectedCampaignId(campaignId);
   }, [campaignId, setSelectedCampaignId]);
 
   useEffect(() => {
+    initializedCampaignIdRef.current = null;
+    slugTouchedRef.current = false;
+  }, [campaignId]);
+
+  useEffect(() => {
     if (campaign === undefined || campaign === null) {
       return;
     }
+    if (initializedCampaignIdRef.current === campaignId) {
+      return;
+    }
+    initializedCampaignIdRef.current = campaignId;
     setName(campaign.name);
     setSlug(campaign.slug);
     setDescription(campaign.description ?? "");
     setVisibility(campaign.visibility);
+    setInitialVisibility(campaign.visibility);
     setFormError(null);
-  }, [campaign]);
+    initialSnapshotRef.current = JSON.stringify({
+      name: campaign.name,
+      slug: campaign.slug,
+      description: campaign.description ?? "",
+      visibility: campaign.visibility,
+    });
+  }, [campaign, campaignId]);
 
-  const persist = useCallback(
-    async (intent: SaveIntent) => {
-      const trimmed = name.trim();
-      const trimmedSlug = slug.trim();
-      if (!trimmed) {
-        setFormError("Campaign name is required.");
-        return;
-      }
-      if (!trimmedSlug) {
-        setFormError("Slug is required.");
-        return;
-      }
-      if (!workspaceId) {
-        setFormError("Select a workspace in the sidebar first.");
-        return;
-      }
-      if (intent === "mark_ready" && readiness && !readiness.canMarkReady) {
-        setFormError(
-          "Add at least one category with at least two nominees in each before marking as ready.",
-        );
-        return;
-      }
+  const isDirty = useCallback(() => {
+    return (
+      JSON.stringify({ name, slug, description, visibility }) !==
+      initialSnapshotRef.current
+    );
+  }, [name, slug, description, visibility]);
 
-      setFormError(null);
-      setSaving(true);
-      try {
-        await updateCampaign({
-          campaignId,
-          name: trimmed,
-          description: description.trim() || undefined,
-          visibility,
-          slug: trimmedSlug,
-          intent,
-        });
-        showShareMessage(
-          intent === "mark_ready"
-            ? "Campaign marked as ready"
-            : isReadyLocked
-              ? "Reverted to draft"
-              : "Campaign saved as draft",
-        );
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Could not save campaign.";
-        setFormError(message || "Could not save campaign. Try again.");
-      } finally {
-        setSaving(false);
-      }
-    },
-    [
-      name,
-      slug,
-      description,
-      visibility,
-      workspaceId,
-      campaignId,
-      readiness,
-      updateCampaign,
-      showShareMessage,
-      isReadyLocked,
-    ],
-  );
+  const handleSlugChange = useCallback((value: string) => {
+    slugTouchedRef.current = true;
+    setSlug(value);
+  }, []);
 
-  const handleDelete = useCallback(async () => {
-    if (!canDelete) return;
-    if (
-      !window.confirm(
-        "Delete this campaign? It will be marked deleted and hidden from the list.",
-      )
-    ) {
+  const persist = useCallback(async () => {
+    const trimmed = name.trim();
+    const trimmedSlug = slug.trim();
+    if (!trimmed) {
+      setFormError("Campaign name is required.");
       return;
     }
-    setSaving(true);
+    if (!trimmedSlug) {
+      setFormError("Slug is required.");
+      return;
+    }
+    if (!workspaceId) {
+      setFormError("Select a workspace in the sidebar first.");
+      return;
+    }
+
     setFormError(null);
+    setSaving(true);
     try {
-      await removeCampaign({ campaignId });
-      showShareMessage("Campaign deleted");
-      startTransition(() => {
-        router.push("/admin");
+      await updateCampaign({
+        campaignId,
+        name: trimmed,
+        description: description.trim() || undefined,
+        visibility,
+        slug: trimmedSlug,
       });
+      showShareMessage("Campaign saved");
+      initialSnapshotRef.current = JSON.stringify({
+        name: trimmed,
+        slug: trimmedSlug,
+        description: description.trim(),
+        visibility,
+      });
+      setInitialVisibility(visibility);
+      router.replace(detailHref);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Could not delete campaign.";
-      setFormError(message);
+        error instanceof Error ? error.message : "Could not save campaign.";
+      setFormError(message || "Could not save campaign. Try again.");
     } finally {
       setSaving(false);
     }
-  }, [campaignId, canDelete, removeCampaign, router, showShareMessage]);
+  }, [
+    name,
+    slug,
+    description,
+    visibility,
+    workspaceId,
+    campaignId,
+    updateCampaign,
+    showShareMessage,
+    router,
+    detailHref,
+  ]);
+
+  const handleSave = useCallback(() => {
+    if (visibility !== initialVisibility && campaign) {
+      pendingSaveRef.current = persist;
+      setVisibilityDialogOpen(true);
+      return;
+    }
+    void persist();
+  }, [campaign, initialVisibility, persist, visibility]);
+
+  const handleClose = useCallback(() => {
+    if (isDirty()) {
+      if (
+        !window.confirm(
+          "Discard unsaved changes and return to the campaign view?",
+        )
+      ) {
+        return;
+      }
+    }
+    router.push(detailHref);
+  }, [detailHref, isDirty, router]);
 
   if (!workspaceId) {
     return (
@@ -217,7 +204,7 @@ export function CampaignEditor({ campaignId }: CampaignEditorProps) {
     return (
       <div className="flex flex-col gap-3 p-4 md:p-6" aria-busy="true">
         <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-64 w-full max-w-xl" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
@@ -232,199 +219,93 @@ export function CampaignEditor({ campaignId }: CampaignEditorProps) {
               This campaign could not be found, or you do not have admin access.
             </EmptyDescription>
           </EmptyHeader>
-          <EmptyContent>
-            <Link
-              href="/admin"
-              className={buttonVariants({ variant: "outline" })}
-            >
-              Back to campaigns
-            </Link>
-          </EmptyContent>
+        </Empty>
+      </div>
+    );
+  }
+
+  if (!canEditCampaignMetadata(campaign.lifecycle)) {
+    return (
+      <div className="p-4 md:p-6">
+        <Empty className="border border-dashed border-border">
+          <EmptyHeader>
+            <EmptyTitle>Cannot edit</EmptyTitle>
+            <EmptyDescription>
+              Only draft campaigns can be edited.{" "}
+              {campaignLifecycle
+                ? `This campaign is ${campaignLifecycle}.`
+                : null}
+            </EmptyDescription>
+          </EmptyHeader>
         </Empty>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-6 p-4 md:p-6">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          nativeButton={false}
-          render={<Link href="/admin" />}
-        >
-          <RiArrowLeftLine className="size-4" />
-          Campaigns
-        </Button>
-      </div>
-
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 md:p-6 lg:max-w-4xl">
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>Campaign</CardTitle>
+            <CardTitle>Edit campaign</CardTitle>
             <CampaignLifecycleBadge lifecycle={campaign.lifecycle} />
           </div>
           <CardDescription>
-            {isReadyLocked
-              ? "This campaign is ready and locked. Revert to draft to edit."
-              : isTerminalLocked && campaignLifecycle
-                ? `${LIFECYCLE_LABELS[campaignLifecycle]} campaigns cannot be edited here.`
-                : "Save as draft or mark as ready when categories and nominees are set up."}
+            Update name, slug, cover photo, description, and visibility.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <FieldGroup className="gap-4">
-            <Field data-invalid={Boolean(formError && !name.trim())}>
-              <FieldLabel htmlFor="campaign-name">Name</FieldLabel>
-              <FieldContent>
-                <Input
-                  id="campaign-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Q4 Engineering Awards"
-                  disabled={fieldsDisabled}
-                  aria-invalid={Boolean(formError && !name.trim())}
-                  autoComplete="off"
-                />
-              </FieldContent>
-            </Field>
-
-            <Field data-invalid={Boolean(formError && !slug.trim())}>
-              <FieldLabel htmlFor="campaign-slug">Slug</FieldLabel>
-              <FieldContent>
-                <Input
-                  id="campaign-slug"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  placeholder="e.g. q4-engineering-awards"
-                  disabled={fieldsDisabled}
-                  aria-invalid={Boolean(formError && !slug.trim())}
-                  autoComplete="off"
-                />
-                <FieldDescription>
-                  URL-safe identifier, unique within this workspace.
-                </FieldDescription>
-              </FieldContent>
-            </Field>
-
-            <ImageUploadField
-              label="Cover photo"
-              description="Shown on the campaign list and cards. Cropped to 16:9."
-              imageUrl={campaign.imageUrl}
-              aspect={16 / 9}
-              previewClassName="w-full"
-              disabled={fieldsDisabled}
-              processingTarget={{ type: "campaign", campaignId }}
-              onUpload={async (storageId) => {
-                await setCampaignImage({ campaignId, storageId });
-                showShareMessage("Cover photo updated");
-              }}
-              onRemove={async () => {
-                await clearCampaignImage({ campaignId });
-                showShareMessage("Cover photo removed");
-              }}
-            />
-
-            <Field>
-              <FieldLabel htmlFor="campaign-description">
-                Description
-              </FieldLabel>
-              <FieldContent>
-                <Textarea
-                  id="campaign-description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Optional short summary"
-                  rows={4}
-                  className="min-h-24 resize-y"
-                  disabled={fieldsDisabled}
-                />
-              </FieldContent>
-            </Field>
-
-            <CampaignCategoriesEditor
-              campaignId={campaignId}
-              disabled={fieldsDisabled}
-            />
-
-            <Field>
-              <FieldLabel>Visibility</FieldLabel>
-              <FieldContent>
-                <CampaignVisibilityControls
-                  visibility={visibility}
-                  onVisibilityChange={setVisibility}
-                  disabled={fieldsDisabled}
-                />
-              </FieldContent>
-            </Field>
-
-            {formError ? <FieldError>{formError}</FieldError> : null}
-          </FieldGroup>
-        </CardContent>
-        <CardFooter className="flex flex-wrap gap-2">
-          {showDraftReadyActions ? (
-            isReadyLocked ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => persist("save_draft")}
-                disabled={saving}
-              >
-                {saving ? "Saving…" : "Revert to draft"}
-              </Button>
-            ) : (
-              <>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => persist("save_draft")}
-                  disabled={saving || !name.trim()}
-                >
-                  {saving ? "Saving…" : "Save as draft"}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => persist("mark_ready")}
-                  disabled={
-                    saving || !name.trim() || readiness?.canMarkReady === false
-                  }
-                >
-                  {saving ? "Saving…" : "Mark as ready"}
-                </Button>
-              </>
-            )
-          ) : null}
-          <CampaignLifecycleActions
+          <CampaignMetadataFields
+            values={{ name, slug, description, visibility }}
+            onNameChange={setName}
+            onSlugChange={handleSlugChange}
+            onDescriptionChange={setDescription}
+            onVisibilityChange={setVisibility}
+            disabled={fieldsDisabled}
+            formError={formError}
             campaignId={campaignId}
-            campaignName={campaign.name}
-            lifecycle={campaign.lifecycle}
-            disabled={saving}
-            hideEdit
-            onArchived={() => {
-              startTransition(() => {
-                router.push("/admin");
-              });
+            imageUrl={campaign.imageUrl}
+            onImageUpload={async (storageId) => {
+              await setCampaignImage({ campaignId, storageId });
+              showShareMessage("Cover photo updated");
+            }}
+            onImageRemove={async () => {
+              await clearCampaignImage({ campaignId });
+              showShareMessage("Cover photo removed");
             }}
           />
-          {canDelete ? (
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={saving}
-            >
-              Delete
-            </Button>
-          ) : null}
-          <Link
-            href="/admin"
-            className={buttonVariants({ variant: "outline" })}
+        </CardContent>
+        <CardFooter className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || !name.trim()}
           >
-            Cancel
-          </Link>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClose}
+            disabled={saving}
+          >
+            Close
+          </Button>
         </CardFooter>
       </Card>
+
+      <VisibilityChangeDialog
+        open={visibilityDialogOpen}
+        onOpenChange={setVisibilityDialogOpen}
+        from={initialVisibility}
+        to={visibility}
+        lifecycle={campaign.lifecycle}
+        onConfirm={() => {
+          const save = pendingSaveRef.current;
+          pendingSaveRef.current = null;
+          void save?.();
+        }}
+      />
     </div>
   );
 }
