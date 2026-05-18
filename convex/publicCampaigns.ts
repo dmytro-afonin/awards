@@ -76,8 +76,9 @@ async function loadCategoryCards(
       ? []
       : await ctx.db
           .query("categoryVotes")
-          .withIndex("by_campaign", (q) => q.eq("campaignId", campaignId))
-          .filter((q) => q.eq(q.field("userId"), userId))
+          .withIndex("by_campaign_and_user", (q) =>
+            q.eq("campaignId", campaignId).eq("userId", userId),
+          )
           .collect();
 
   const voteByCategory = new Map(
@@ -124,10 +125,10 @@ export const getBySlug = query({
   args: {
     slug: v.string(),
     workspaceId: v.optional(v.id("workspaces")),
-    now: v.number(),
   },
   returns: v.union(publicCampaign, v.null()),
   handler: async (ctx, args) => {
+    const now = Date.now();
     const userId = await getUserId(ctx);
     const campaign = await getViewableCampaign(
       ctx,
@@ -140,8 +141,8 @@ export const getBySlug = query({
     }
 
     const lifecycle = normalizeCampaignLifecycle(campaign.lifecycle as string);
-    const votingOpen = isVotingOpen(campaign, args.now);
-    const canVote = await canVoteOnCampaign(ctx, campaign, userId, args.now);
+    const votingOpen = isVotingOpen(campaign, now);
+    const canVote = await canVoteOnCampaign(ctx, campaign, userId, now);
 
     return {
       _id: campaign._id,
@@ -164,10 +165,10 @@ export const getCategory = query({
     slug: v.string(),
     categoryId: v.id("campaignCategories"),
     workspaceId: v.optional(v.id("workspaces")),
-    now: v.number(),
   },
   returns: v.union(publicCategory, v.null()),
   handler: async (ctx, args) => {
+    const now = Date.now();
     const userId = await getUserId(ctx);
     const campaign = await getViewableCampaign(
       ctx,
@@ -203,8 +204,8 @@ export const getCategory = query({
       selectedNomineeId = existing?.nomineeId ?? null;
     }
 
-    const votingOpen = isVotingOpen(campaign, args.now);
-    const canVote = await canVoteOnCampaign(ctx, campaign, userId, args.now);
+    const votingOpen = isVotingOpen(campaign, now);
+    const canVote = await canVoteOnCampaign(ctx, campaign, userId, now);
 
     return {
       campaign: {
@@ -244,17 +245,17 @@ export const castVote = mutation({
     campaignId: v.id("campaigns"),
     categoryId: v.id("campaignCategories"),
     nomineeId: v.id("campaignNominees"),
-    now: v.number(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const now = Date.now();
     const userId = await getOrCreateUserId(ctx);
     const campaign = await ctx.db.get(args.campaignId);
     if (!campaign) {
       throw new Error("Campaign not found");
     }
 
-    const canVote = await canVoteOnCampaign(ctx, campaign, userId, args.now);
+    const canVote = await canVoteOnCampaign(ctx, campaign, userId, now);
     if (!canVote) {
       throw new Error("Voting is not open for this campaign.");
     }

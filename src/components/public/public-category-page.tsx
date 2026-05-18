@@ -31,7 +31,6 @@ export function PublicCategoryPage({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const workspaceId = parseWorkspaceIdFromSearch(searchParams.toString());
-  const [now] = useState(() => Date.now());
   const { isLoaded: clerkLoaded, isSignedIn } = useAuth();
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
   const signInHref = `/sign-in?redirect_url=${encodeURIComponent(`${pathname}?${searchParams.toString()}`)}`;
@@ -40,7 +39,6 @@ export function PublicCategoryPage({
     slug,
     categoryId,
     workspaceId,
-    now,
   });
   const castVote = useMutation(api.publicCampaigns.castVote);
 
@@ -74,7 +72,7 @@ export function PublicCategoryPage({
   );
 
   const handleVote = async (nomineeId: Id<"campaignNominees">) => {
-    if (!data.canVote) {
+    if (!data.canVote || pendingNomineeId !== null) {
       return;
     }
     setPendingNomineeId(nomineeId);
@@ -84,7 +82,6 @@ export function PublicCategoryPage({
         campaignId: data.campaign._id,
         categoryId: data.category._id,
         nomineeId,
-        now: Date.now(),
       });
       toast.success("Vote saved");
     } catch (error) {
@@ -157,14 +154,14 @@ export function PublicCategoryPage({
           <ul className="grid gap-4 sm:grid-cols-2">
             {data.nominees.map((nominee) => {
               const isSelected = activeSelection === nominee._id;
-              const isPending = pendingNomineeId === nominee._id;
+              const voteInFlight = pendingNomineeId !== null;
               const canSelect = data.canVote && !authLoading && isAuthenticated;
 
               return (
                 <li key={nominee._id}>
                   <button
                     type="button"
-                    disabled={!canSelect || isPending}
+                    disabled={!canSelect || voteInFlight}
                     onClick={() => void handleVote(nominee._id)}
                     className={cn(
                       "flex h-full w-full flex-col overflow-hidden border bg-card text-left transition-colors",
