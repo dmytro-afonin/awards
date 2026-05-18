@@ -131,6 +131,10 @@ export function CampaignCategoriesEditor({
                 aspect={1}
                 previewClassName="max-w-40"
                 disabled={disabled || busy}
+                processingTarget={{
+                  type: "category",
+                  categoryId: category._id,
+                }}
                 onUpload={async (storageId) => {
                   await setCategoryImage({
                     categoryId: category._id,
@@ -168,6 +172,10 @@ export function CampaignCategoriesEditor({
                       aspect={1}
                       previewClassName="max-w-32"
                       disabled={disabled || busy}
+                      processingTarget={{
+                        type: "nominee",
+                        nomineeId: nominee._id,
+                      }}
                       onUpload={async (storageId) => {
                         await setNomineeImage({
                           nomineeId: nominee._id,

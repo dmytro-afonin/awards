@@ -315,6 +315,7 @@ export function CampaignEditor({ campaignId }: CampaignEditorProps) {
               aspect={16 / 9}
               previewClassName="w-full"
               disabled={fieldsDisabled}
+              processingTarget={{ type: "campaign", campaignId }}
               onUpload={async (storageId) => {
                 await setCampaignImage({ campaignId, storageId });
                 showShareMessage("Cover photo updated");
