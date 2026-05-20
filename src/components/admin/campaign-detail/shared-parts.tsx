@@ -1,23 +1,21 @@
 "use client";
 
-import { api } from "@cvx/_generated/api";
+import type { api } from "@cvx/_generated/api";
 import type { Id } from "@cvx/_generated/dataModel";
-import { RiStarFill, RiTrophyLine } from "@remixicon/react";
-import { useMutation } from "convex/react";
+import { RiArrowRightLine, RiStarFill, RiTrophyLine } from "@remixicon/react";
 import type { FunctionReturnType } from "convex/server";
-import { useRouter } from "next/navigation";
-import { startTransition, useCallback } from "react";
-import { useAdmin } from "@/components/admin/admin-context";
-import { Badge } from "@/components/ui/badge";
+import { CategoryBallotControls } from "@/components/admin/campaign-detail/category-ballot-controls";
+import { CategoryStatusIndicator } from "@/components/admin/campaign-detail/category-status-indicator";
+import { HoverShareViewActions } from "@/components/admin/campaign-detail/hover-share-view-actions";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { normalizeCampaignLifecycle } from "@/lib/campaign-lifecycle";
+import {
+  canAdvanceFromCategory,
+  categoryStatusSurface,
+  currentRunwayCategory,
+  nextCategoryInOrder,
+} from "@/lib/category-run";
+import { publicCategoryPath } from "@/lib/public-campaign-url";
 import { cn } from "@/lib/utils";
 
 export type CategoryOverview = FunctionReturnType<
@@ -33,6 +31,9 @@ type CategoriesOverviewListProps = {
   categories: CategoryOverview[];
   nomineeLayout: NomineeLayout;
   campaignLifecycle: string;
+  slug?: string;
+  workspaceId?: Id<"workspaces">;
+  showPublicLinks?: boolean;
   className?: string;
 };
 
@@ -40,10 +41,16 @@ export function CategoriesOverviewList({
   categories,
   nomineeLayout,
   campaignLifecycle,
+  slug = "",
+  workspaceId,
+  showPublicLinks = false,
   className,
 }: CategoriesOverviewListProps) {
   const state = normalizeCampaignLifecycle(campaignLifecycle);
-  const showWinners = state === "vote_ended" || state === "finished";
+  const canManageBallot = state === "vote_live" || state === "vote_ended";
+  const runwayCategory = canManageBallot
+    ? currentRunwayCategory(categories)
+    : undefined;
 
   if (categories.length === 0) {
     return (
@@ -56,8 +63,8 @@ export function CategoriesOverviewList({
   return (
     <ul
       className={cn(
-        "flex flex-col gap-6",
-        nomineeLayout === "grid-compact" && "gap-4",
+        "flex flex-col gap-4",
+        nomineeLayout === "grid-compact" && "gap-3",
         className,
       )}
     >
@@ -65,9 +72,14 @@ export function CategoriesOverviewList({
         <CategoryOverviewItem
           key={category._id}
           category={category}
+          categories={categories}
           nomineeLayout={nomineeLayout}
-          showWinners={showWinners}
-          canFinalize={state === "vote_ended"}
+          showWinners={category.categoryStatus === "finished"}
+          canManageBallot={canManageBallot}
+          isRunwayFocus={runwayCategory?._id === category._id}
+          slug={slug}
+          workspaceId={workspaceId!}
+          showPublicLinks={showPublicLinks && Boolean(workspaceId)}
         />
       ))}
     </ul>
@@ -77,76 +89,96 @@ export function CategoriesOverviewList({
 function NomineeCard({
   nominee,
   isWinner,
+  showVoteCounts,
+  showPublicLinks,
+  publicHref,
   compact = false,
   fluid = false,
 }: {
   nominee: Nominee;
   isWinner: boolean;
+  showVoteCounts: boolean;
+  showPublicLinks: boolean;
+  publicHref?: string;
   compact?: boolean;
-  /** Fill grid cell width instead of fixed card width */
   fluid?: boolean;
 }) {
   return (
     <article
       className={cn(
-        "relative flex flex-col overflow-hidden rounded-lg border bg-card ring-1 ring-border transition-shadow",
+        "group/nominee relative overflow-hidden rounded-lg border bg-muted ring-1 ring-border transition-shadow",
         !fluid && "shrink-0",
         fluid && "w-full",
         !fluid && (compact ? "w-[7.5rem]" : "w-[9.5rem] sm:w-[10.5rem]"),
+        compact ? "aspect-[4/3]" : "aspect-square",
         isWinner && "border-amber-500/40 ring-amber-500/30",
       )}
     >
+      {showPublicLinks && publicHref ? (
+        <HoverShareViewActions
+          viewHref={publicHref}
+          hoverVisibleClassName="group-hover/nominee:opacity-100 group-focus-within/nominee:opacity-100"
+          className="absolute top-1.5 left-1.5 z-10 rounded-md bg-background/90 p-0.5 shadow-sm backdrop-blur-sm"
+        />
+      ) : null}
+      {nominee.imageUrl ? (
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${nominee.imageUrl})` }}
+          role="img"
+          aria-label={nominee.name}
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-lg font-semibold text-muted-foreground">
+          {nominee.name.slice(0, 2).toUpperCase()}
+        </div>
+      )}
+      {isWinner ? (
+        <span className="absolute top-1.5 right-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm">
+          <RiTrophyLine className="size-3.5" aria-hidden />
+          <span className="sr-only">Winner</span>
+        </span>
+      ) : null}
       <div
         className={cn(
-          "relative w-full bg-muted",
-          compact ? "aspect-[4/3]" : "aspect-square",
+          "absolute inset-x-0 bottom-0 z-[1] bg-gradient-to-t from-black/85 via-black/55 to-transparent transition-opacity duration-200",
+          "group-hover/nominee:opacity-0 group-focus-within/nominee:opacity-0",
+          compact ? "px-1.5 pt-6 pb-1.5" : "px-2 pt-8 pb-2",
         )}
       >
-        {nominee.imageUrl ? (
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${nominee.imageUrl})` }}
-            role="img"
-            aria-label={nominee.name}
-          />
-        ) : (
-          <div className="flex size-full items-center justify-center text-lg font-semibold text-muted-foreground">
-            {nominee.name.slice(0, 2).toUpperCase()}
-          </div>
-        )}
-        {isWinner ? (
-          <span className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm">
-            <RiTrophyLine className="size-3.5" aria-hidden />
-            <span className="sr-only">Winner</span>
-          </span>
-        ) : null}
-      </div>
-      <div className={cn("flex flex-col gap-0.5 p-2", compact && "p-1.5")}>
         <p
           className={cn(
-            "line-clamp-2 font-medium leading-tight text-foreground",
+            "line-clamp-2 font-medium leading-tight text-white",
             compact ? "text-xs" : "text-sm",
           )}
         >
           {nominee.name}
         </p>
-        <p className="text-xs tabular-nums text-muted-foreground">
-          {nominee.voteCount} {nominee.voteCount === 1 ? "vote" : "votes"}
-        </p>
+        {showVoteCounts ? (
+          <p className="text-xs tabular-nums text-white/75">
+            {nominee.voteCount} {nominee.voteCount === 1 ? "vote" : "votes"}
+          </p>
+        ) : null}
       </div>
     </article>
   );
 }
 
-function NomineesGallery({
+export function NomineesGallery({
   nominees,
   layout,
   showWinners,
+  showVoteCounts,
+  showPublicLinks,
+  categoryPublicHref,
   winnerId,
 }: {
   nominees: Nominee[];
   layout: NomineeLayout;
   showWinners: boolean;
+  showVoteCounts: boolean;
+  showPublicLinks: boolean;
+  categoryPublicHref?: string;
   winnerId?: Id<"campaignNominees">;
 }) {
   if (nominees.length === 0) {
@@ -172,6 +204,9 @@ function NomineesGallery({
             <NomineeCard
               nominee={nominee}
               isWinner={showWinners && winnerId === nominee._id}
+              showVoteCounts={showVoteCounts}
+              showPublicLinks={showPublicLinks}
+              publicHref={categoryPublicHref}
               compact={compact}
             />
           </div>
@@ -187,6 +222,9 @@ function NomineesGallery({
           key={nominee._id}
           nominee={nominee}
           isWinner={showWinners && winnerId === nominee._id}
+          showVoteCounts={showVoteCounts}
+          showPublicLinks={showPublicLinks}
+          publicHref={categoryPublicHref}
           fluid
         />
       ))}
@@ -196,135 +234,99 @@ function NomineesGallery({
 
 function CategoryOverviewItem({
   category,
+  categories,
   nomineeLayout,
   showWinners,
-  canFinalize,
+  canManageBallot,
+  isRunwayFocus,
+  slug,
+  workspaceId,
+  showPublicLinks,
 }: {
   category: CategoryOverview;
+  categories: CategoryOverview[];
   nomineeLayout: NomineeLayout;
   showWinners: boolean;
-  canFinalize: boolean;
+  canManageBallot: boolean;
+  isRunwayFocus?: boolean;
+  slug: string;
+  workspaceId: Id<"workspaces">;
+  showPublicLinks: boolean;
 }) {
-  const router = useRouter();
-  const { showShareMessage } = useAdmin();
-  const finalizeCategory = useMutation(api.campaignCategories.finalizeCategory);
-  const setCategoryWinner = useMutation(
-    api.campaignCategories.setCategoryWinner,
-  );
-
   const winnerId = category.winnerNomineeId;
-  const isFinished = category.categoryStatus === "finished";
   const isGrid = nomineeLayout === "grid";
-
-  const handleFinalize = useCallback(async () => {
-    try {
-      await finalizeCategory({ categoryId: category._id });
-      showShareMessage(`"${category.name}" finalized`);
-      startTransition(() => router.refresh());
-    } catch (error) {
-      showShareMessage(
-        error instanceof Error ? error.message : "Could not finalize.",
-        "error",
-      );
-    }
-  }, [category._id, category.name, finalizeCategory, router, showShareMessage]);
-
-  const handleOverride = useCallback(
-    async (nomineeId: string) => {
-      try {
-        await setCategoryWinner({
-          categoryId: category._id,
-          nomineeId: nomineeId as Id<"campaignNominees">,
-        });
-        showShareMessage(`Winner updated for "${category.name}"`);
-        startTransition(() => router.refresh());
-      } catch (error) {
-        showShareMessage(
-          error instanceof Error ? error.message : "Could not set winner.",
-          "error",
-        );
-      }
-    },
-    [category._id, category.name, router, setCategoryWinner, showShareMessage],
+  const votesRevealed = category.categoryStatus === "finished";
+  const categoryPublicHref = publicCategoryPath(
+    slug,
+    workspaceId,
+    category.slug,
   );
+  const nextCategory = nextCategoryInOrder(categories, category._id);
+  const canAdvance = canAdvanceFromCategory(category.categoryStatus);
 
   return (
     <li
+      id={`admin-category-${category._id}`}
       className={cn(
-        isGrid &&
-          "overflow-hidden rounded-xl border border-border bg-card shadow-sm",
-        nomineeLayout === "scroll" &&
-          "border-b border-border pb-6 last:border-0",
-        nomineeLayout === "grid-compact" &&
-          "rounded-lg bg-muted/20 p-3 ring-1 ring-border/50",
+        "group scroll-mt-28 overflow-hidden rounded-xl border shadow-sm transition-colors",
+        categoryStatusSurface(category.categoryStatus, {
+          runwayFocus: isRunwayFocus,
+        }),
+        nomineeLayout === "scroll" && "p-4 md:p-5",
+        nomineeLayout === "grid-compact" && "p-3",
+        isGrid && "p-0",
       )}
     >
       <div
         className={cn(
-          "mb-3 flex flex-wrap items-start gap-3",
-          isGrid && "border-b border-border bg-muted/30 p-4",
+          "flex items-center gap-3",
+          isGrid && "border-b border-border/60 p-4",
+          !isGrid && "mb-4",
         )}
       >
         {category.imageUrl ? (
           <div
-            className="size-11 shrink-0 rounded-lg bg-cover bg-center ring-1 ring-border"
+            className="size-14 shrink-0 rounded-lg bg-cover bg-center ring-1 ring-border md:size-16"
             style={{ backgroundImage: `url(${category.imageUrl})` }}
             role="img"
             aria-label={category.name}
           />
         ) : (
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-sm font-medium text-muted-foreground">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-muted text-base font-medium text-muted-foreground md:size-16">
             {category.name.slice(0, 1).toUpperCase()}
           </div>
         )}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3
-              className={cn(
-                "font-semibold text-foreground",
-                nomineeLayout === "grid-compact" ? "text-sm" : "text-base",
-              )}
-            >
-              {category.name}
-            </h3>
-            <Badge variant="outline" className="tabular-nums">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <h3
+            className={cn(
+              "truncate font-semibold text-foreground",
+              nomineeLayout === "grid-compact" ? "text-sm" : "text-base",
+            )}
+          >
+            {category.name}
+          </h3>
+          {votesRevealed ? (
+            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
               {category.voteCount} votes
-            </Badge>
-            {isFinished ? <Badge variant="secondary">Finalized</Badge> : null}
-          </div>
-          {canFinalize && !isFinished ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="mt-2"
-              onClick={handleFinalize}
-            >
-              Finalize category
-            </Button>
+            </span>
           ) : null}
-          {canFinalize && isFinished ? (
-            <div className="mt-2 max-w-xs">
-              <Select
-                value={winnerId ?? null}
-                onValueChange={(value) => {
-                  if (value) void handleOverride(value);
-                }}
-              >
-                <SelectTrigger size="sm" className="w-full">
-                  <SelectValue placeholder="Override winner" />
-                </SelectTrigger>
-                <SelectContent>
-                  {category.nominees.map((nominee) => (
-                    <SelectItem key={nominee._id} value={nominee._id}>
-                      {nominee.name} ({nominee.voteCount})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null}
+          <CategoryStatusIndicator
+            status={category.categoryStatus}
+            size="compact"
+          />
         </div>
+        {showPublicLinks ? (
+          <HoverShareViewActions viewHref={categoryPublicHref} />
+        ) : null}
+        {canManageBallot &&
+        (category.categoryStatus === "open" ||
+          category.categoryStatus === "voting_closed") ? (
+          <CategoryBallotControls
+            category={category}
+            categories={categories}
+            labelMode={isRunwayFocus ? "always" : "icon-only"}
+          />
+        ) : null}
       </div>
 
       <div className={cn(isGrid && "p-4")}>
@@ -332,9 +334,44 @@ function CategoryOverviewItem({
           nominees={category.nominees}
           layout={nomineeLayout}
           showWinners={showWinners}
+          showVoteCounts={votesRevealed}
+          showPublicLinks={showPublicLinks}
+          categoryPublicHref={categoryPublicHref}
           winnerId={winnerId}
         />
       </div>
+
+      {canManageBallot && isRunwayFocus && nextCategory ? (
+        <div
+          className={cn(
+            "flex justify-end border-t border-border/50 pt-3",
+            isGrid ? "px-4 pb-4" : "mt-4",
+          )}
+        >
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="gap-1.5 bg-background/60 backdrop-blur-sm"
+            disabled={!canAdvance}
+            title={
+              canAdvance
+                ? `Go to ${nextCategory.name}`
+                : category.categoryStatus === "open"
+                  ? "Close voting and reveal the winner before moving on"
+                  : "Reveal the winner before moving to the next category"
+            }
+            onClick={() => {
+              document
+                .getElementById(`admin-category-${nextCategory._id}`)
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          >
+            Next: {nextCategory.name}
+            <RiArrowRightLine className="size-4" />
+          </Button>
+        </div>
+      ) : null}
     </li>
   );
 }

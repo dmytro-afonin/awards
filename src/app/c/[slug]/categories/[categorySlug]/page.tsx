@@ -1,13 +1,12 @@
 "use client";
 
-import type { Id } from "@cvx/_generated/dataModel";
 import { Suspense, use } from "react";
 import { PublicCategoryPage } from "@/components/public/public-category-page";
 import { PublicShell } from "@/components/public/public-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type PublicCategoryRouteProps = {
-  params: Promise<{ slug: string; categoryId: string }>;
+  params: Promise<{ slug: string; categorySlug: string }>;
 };
 
 function CategoryPageFallback() {
@@ -23,13 +22,8 @@ function CategoryPageFallback() {
 }
 
 function CategoryRouteInner({ params }: PublicCategoryRouteProps) {
-  const { slug, categoryId } = use(params);
-  return (
-    <PublicCategoryPage
-      slug={slug}
-      categoryId={categoryId as Id<"campaignCategories">}
-    />
-  );
+  const { slug, categorySlug } = use(params);
+  return <PublicCategoryPage slug={slug} categorySlug={categorySlug} />;
 }
 
 export default function CategoryRoute({ params }: PublicCategoryRouteProps) {

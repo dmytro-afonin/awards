@@ -8,7 +8,6 @@ import {
   publicCampaignPath,
   publicCategoriesPath,
 } from "@/lib/public-campaign-url";
-import type { PublicLayoutId } from "@/lib/public-layout";
 import { cn } from "@/lib/utils";
 import type { usePublicVote } from "./use-public-vote";
 
@@ -20,16 +19,14 @@ type CampaignRef = {
 
 export function BackToCampaign({
   campaign,
-  layout,
   className,
 }: {
   campaign: CampaignRef;
-  layout: PublicLayoutId;
   className?: string;
 }) {
   return (
     <Link
-      href={publicCampaignPath(campaign.slug, campaign.workspaceId, layout)}
+      href={publicCampaignPath(campaign.slug, campaign.workspaceId)}
       className={cn(
         buttonVariants({ variant: "ghost", size: "sm" }),
         "w-fit px-0",
@@ -43,18 +40,16 @@ export function BackToCampaign({
 
 export function BackToCategories({
   campaign,
-  layout,
   className,
   label = "Categories",
 }: {
   campaign: CampaignRef;
-  layout: PublicLayoutId;
   className?: string;
   label?: string;
 }) {
   return (
     <Link
-      href={publicCategoriesPath(campaign.slug, campaign.workspaceId, layout)}
+      href={publicCategoriesPath(campaign.slug, campaign.workspaceId)}
       className={cn(
         buttonVariants({ variant: "ghost", size: "sm" }),
         "w-fit px-0",

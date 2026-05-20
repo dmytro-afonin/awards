@@ -9,22 +9,25 @@ import {
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import {
+  type CategoryRunStatus,
+  canProceedToNextCategory,
+} from "@/lib/category-run";
+import {
   publicCategoriesPath,
   publicCategoryPath,
 } from "@/lib/public-campaign-url";
-import type { PublicLayoutId } from "@/lib/public-layout";
 import { cn } from "@/lib/utils";
 
 type AdjacentCategory = {
   _id: Id<"campaignCategories">;
   name: string;
+  slug: string;
   selectedNomineeId: Id<"campaignNominees"> | null;
 };
 
 export function CategoryFlowNav({
   slug,
   workspaceId,
-  layout,
   index,
   total,
   prev,
@@ -33,10 +36,11 @@ export function CategoryFlowNav({
   className,
   nextRequiresVote = true,
   activeSelection,
+  votingOpen = true,
+  categoryStatus,
 }: {
   slug: string;
   workspaceId: Id<"workspaces">;
-  layout: PublicLayoutId;
   index: number;
   total: number;
   prev: AdjacentCategory | null;
@@ -45,11 +49,17 @@ export function CategoryFlowNav({
   className?: string;
   nextRequiresVote?: boolean;
   activeSelection: Id<"campaignNominees"> | null;
+  votingOpen?: boolean;
+  categoryStatus?: CategoryRunStatus;
 }) {
-  const listHref =
-    categoriesHref ?? publicCategoriesPath(slug, workspaceId, layout);
+  const listHref = categoriesHref ?? publicCategoriesPath(slug, workspaceId);
   const canGoNext =
-    !nextRequiresVote || activeSelection !== null || next === null;
+    next === null ||
+    canProceedToNextCategory({
+      votingOpen,
+      hasVote: activeSelection !== null,
+      categoryStatus,
+    });
 
   return (
     <nav
@@ -62,7 +72,7 @@ export function CategoryFlowNav({
       <div className="flex flex-wrap items-center gap-2">
         {prev ? (
           <Link
-            href={publicCategoryPath(slug, workspaceId, prev._id, layout)}
+            href={publicCategoryPath(slug, workspaceId, prev.slug)}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             <RiArrowLeftLine className="size-4" aria-hidden />
@@ -91,7 +101,7 @@ export function CategoryFlowNav({
         {next ? (
           canGoNext ? (
             <Link
-              href={publicCategoryPath(slug, workspaceId, next._id, layout)}
+              href={publicCategoryPath(slug, workspaceId, next.slug)}
               className={buttonVariants({ size: "sm" })}
             >
               Next: {next.name}
@@ -103,9 +113,13 @@ export function CategoryFlowNav({
                 buttonVariants({ size: "sm" }),
                 "pointer-events-none opacity-50",
               )}
-              title="Pick a nominee to continue"
+              title={
+                votingOpen
+                  ? "Pick a nominee to continue"
+                  : "Complete this step to continue"
+              }
             >
-              Vote to continue
+              {votingOpen ? "Vote to continue" : "Continue"}
               <RiArrowRightLine className="size-4" aria-hidden />
             </span>
           )

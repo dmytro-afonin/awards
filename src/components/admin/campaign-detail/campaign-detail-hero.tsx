@@ -9,8 +9,13 @@ import {
 } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { CampaignTitleBlock } from "@/components/admin/campaign-detail/campaign-title-block";
-import { CampaignLifecycleBadge } from "@/components/admin/campaign-lifecycle-badge";
+import { LifecycleStepper } from "@/components/admin/campaign-detail/lifecycle-stepper";
 import { CampaignVisibilityIcon } from "@/components/campaign-visibility";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { CampaignVisibility } from "@/lib/campaign-visibility";
 import {
   formatMemberCount,
@@ -100,46 +105,71 @@ export function CampaignDetailHero({
           </div>
         )}
 
-        <div className="relative flex flex-col gap-4 p-6 text-white md:p-8">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="absolute inset-x-0 top-0 border-b border-white/10 bg-black/15 px-4 py-3 backdrop-blur-sm md:px-6">
+          <LifecycleStepper
+            lifecycle={campaign.lifecycle}
+            orientation="horizontal"
+            variant="hero-overlay"
+          />
+        </div>
+
+        <div className="relative flex flex-col gap-4 p-6 pt-20 text-white md:p-8 md:pt-24">
+          <div className="flex items-start gap-3">
             <CampaignVisibilityIcon
               visibility={campaign.visibility}
-              className="text-white/90"
+              size="md"
+              className="mt-0.5 shrink-0 rounded-md bg-white/15 p-1.5 ring-1 ring-white/25 backdrop-blur-sm"
+              iconClassName="text-white"
             />
-            <CampaignLifecycleBadge lifecycle={campaign.lifecycle} />
+            <CampaignTitleBlock
+              name={campaign.name}
+              slug={campaign.slug}
+              description={campaign.description}
+              dates={
+                dates ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <RiCalendarLine className="size-4 shrink-0" aria-hidden />
+                    {dates}
+                  </span>
+                ) : null
+              }
+              size="hero"
+              inverted
+            />
           </div>
-          <CampaignTitleBlock
-            name={campaign.name}
-            slug={campaign.slug}
-            description={campaign.description}
-            dates={
-              dates ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <RiCalendarLine className="size-4 shrink-0" aria-hidden />
-                  {dates}
-                </span>
-              ) : null
-            }
-            size="hero"
-            inverted
-          />
           {footer ? <div className="flex flex-wrap gap-2">{footer}</div> : null}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-px bg-border md:grid-cols-4">
-        {stats.map((stat) => (
+      <div className="flex overflow-x-auto bg-border">
+        {stats.map((stat, index) => (
           <div
             key={stat.label}
-            className="flex flex-col gap-1 bg-card px-4 py-3"
+            className={cn(
+              "flex min-w-0 flex-1 items-center bg-card px-2 py-2 xl:px-4 xl:py-2.5",
+              index > 0 && "border-l border-border",
+            )}
           >
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <stat.icon className="size-3.5" />
-              {stat.label}
-            </span>
-            <span className="text-lg font-semibold tabular-nums">
-              {stat.value}
-            </span>
+            <Tooltip>
+              <TooltipTrigger className="flex min-w-0 flex-1 items-center justify-center gap-1.5 outline-none xl:justify-start xl:gap-2">
+                <stat.icon
+                  className="size-3.5 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
+                <span className="hidden truncate text-xs text-muted-foreground xl:inline">
+                  {stat.label}
+                </span>
+                <span className="max-w-[5.5rem] shrink-0 truncate text-sm font-semibold tabular-nums xl:ml-auto xl:max-w-none">
+                  {stat.value}
+                </span>
+                <span className="sr-only xl:hidden">
+                  {stat.label}: {stat.value}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="xl:hidden">
+                {stat.label}
+              </TooltipContent>
+            </Tooltip>
           </div>
         ))}
       </div>

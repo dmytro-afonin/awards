@@ -1,15 +1,23 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { type MutationCtx, mutation, query } from "./_generated/server";
+import {
+  internalMutation,
+  type MutationCtx,
+  mutation,
+  query,
+} from "./_generated/server";
 import { requireAdminMembership } from "./lib/access";
 import {
-  assertCanFinalizeCategory,
+  assertCanRevealAllCategoryWinners,
+  assertCanRunCategoryBallot,
   isCampaignContentEditable,
 } from "./lib/campaignLifecycleRules";
 import {
   getCategoryNomineeCounts,
   syncCampaignContentCounts,
 } from "./lib/campaignReady";
+import { resolveUniqueCategorySlug } from "./lib/categorySlug";
+import { normalizeCategoryStatus } from "./lib/categoryStatus";
 import { computeAutoWinnerNomineeId } from "./lib/categoryWinner";
 import {
   assertImageStorageObject,
@@ -21,6 +29,7 @@ const categoryWithNominees = v.object({
   _id: v.id("campaignCategories"),
   campaignId: v.id("campaigns"),
   name: v.string(),
+  slug: v.string(),
   sortOrder: v.number(),
   imageUrl: v.optional(v.string()),
   nominees: v.array(
@@ -41,7 +50,7 @@ async function assertCampaignImageEditable(
   if (!campaign) throw new Error("Campaign not found");
   await requireAdminMembership(ctx, campaign.workspaceId);
   if (!isCampaignContentEditable(campaign.lifecycle)) {
-    throw new Error("Revert this campaign to draft before editing images.");
+    throw new Error("Archived campaigns cannot be edited.");
   }
   return campaign;
 }
@@ -77,6 +86,7 @@ export const listForCampaign = query({
           _id: category._id,
           campaignId: category.campaignId,
           name: category.name,
+          slug: category.slug,
           sortOrder: category.sortOrder,
           imageUrl: categoryImageUrl,
           nominees: (
@@ -108,9 +118,7 @@ export const createCategory = mutation({
     if (!campaign) throw new Error("Campaign not found");
     await requireAdminMembership(ctx, campaign.workspaceId);
     if (!isCampaignContentEditable(campaign.lifecycle)) {
-      throw new Error(
-        "Revert this campaign to draft before editing categories.",
-      );
+      throw new Error("Archived campaigns cannot be edited.");
     }
 
     const name = args.name.trim();
@@ -121,9 +129,12 @@ export const createCategory = mutation({
       .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
       .collect();
 
+    const slug = await resolveUniqueCategorySlug(ctx, args.campaignId, name);
+
     const id = await ctx.db.insert("campaignCategories", {
       campaignId: args.campaignId,
       name,
+      slug,
       sortOrder: existing.length,
       categoryStatus: "open",
     });
@@ -142,9 +153,7 @@ export const removeCategory = mutation({
     if (!campaign) throw new Error("Campaign not found");
     await requireAdminMembership(ctx, campaign.workspaceId);
     if (!isCampaignContentEditable(campaign.lifecycle)) {
-      throw new Error(
-        "Revert this campaign to draft before editing categories.",
-      );
+      throw new Error("Archived campaigns cannot be edited.");
     }
 
     const nominees = await ctx.db
@@ -175,7 +184,7 @@ export const addNominee = mutation({
     if (!campaign) throw new Error("Campaign not found");
     await requireAdminMembership(ctx, campaign.workspaceId);
     if (!isCampaignContentEditable(campaign.lifecycle)) {
-      throw new Error("Revert this campaign to draft before editing nominees.");
+      throw new Error("Archived campaigns cannot be edited.");
     }
 
     const name = args.name.trim();
@@ -208,7 +217,7 @@ export const removeNominee = mutation({
     if (!campaign) throw new Error("Campaign not found");
     await requireAdminMembership(ctx, campaign.workspaceId);
     if (!isCampaignContentEditable(campaign.lifecycle)) {
-      throw new Error("Revert this campaign to draft before editing nominees.");
+      throw new Error("Archived campaigns cannot be edited.");
     }
 
     await deleteStorageFile(ctx, nominee.imageStorageId);
@@ -293,9 +302,14 @@ export const clearNomineeImage = mutation({
 const categoryOverview = v.object({
   _id: v.id("campaignCategories"),
   name: v.string(),
+  slug: v.string(),
   sortOrder: v.number(),
   imageUrl: v.optional(v.string()),
-  categoryStatus: v.union(v.literal("open"), v.literal("finished")),
+  categoryStatus: v.union(
+    v.literal("open"),
+    v.literal("voting_closed"),
+    v.literal("finished"),
+  ),
   winnerNomineeId: v.optional(v.id("campaignNominees")),
   winnerSource: v.optional(v.union(v.literal("auto"), v.literal("override"))),
   voteCount: v.number(),
@@ -380,6 +394,7 @@ export const overviewForAdmin = query({
         return {
           _id: category._id,
           name: category.name,
+          slug: category.slug,
           sortOrder: category.sortOrder,
           imageUrl: await resolveStorageImageUrl(ctx, category.imageStorageId),
           categoryStatus: category.categoryStatus ?? "open",
@@ -438,6 +453,146 @@ export const readinessSummary = query({
   },
 });
 
+async function closeCategoryVotingRecord(
+  ctx: MutationCtx,
+  categoryId: Id<"campaignCategories">,
+): Promise<void> {
+  const category = await ctx.db.get(categoryId);
+  if (!category) throw new Error("Category not found");
+
+  const status = normalizeCategoryStatus(category.categoryStatus);
+  if (status !== "open") {
+    throw new Error("Voting is already closed for this category.");
+  }
+
+  const campaign = await ctx.db.get(category.campaignId);
+  if (!campaign) throw new Error("Campaign not found");
+
+  const winnerNomineeId = await computeAutoWinnerNomineeId(
+    ctx,
+    category._id,
+    campaign._id,
+  );
+
+  await ctx.db.patch(categoryId, {
+    categoryStatus: "voting_closed",
+    winnerNomineeId,
+    winnerSource: winnerNomineeId ? "auto" : undefined,
+  });
+}
+
+async function revealCategoryWinnerRecord(
+  ctx: MutationCtx,
+  categoryId: Id<"campaignCategories">,
+): Promise<void> {
+  const category = await ctx.db.get(categoryId);
+  if (!category) throw new Error("Category not found");
+
+  const status = normalizeCategoryStatus(category.categoryStatus);
+  if (status === "open") {
+    throw new Error("Close voting before revealing the winner.");
+  }
+  if (status === "finished") {
+    throw new Error("Winner is already public for this category.");
+  }
+  if (!category.winnerNomineeId) {
+    throw new Error("No winner to reveal for this category.");
+  }
+
+  await ctx.db.patch(categoryId, { categoryStatus: "finished" });
+}
+
+export const closeCategoryVoting = mutation({
+  args: { categoryId: v.id("campaignCategories") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const category = await ctx.db.get(args.categoryId);
+    if (!category) throw new Error("Category not found");
+
+    const campaign = await ctx.db.get(category.campaignId);
+    if (!campaign) throw new Error("Campaign not found");
+
+    await requireAdminMembership(ctx, campaign.workspaceId);
+    assertCanRunCategoryBallot(campaign);
+    await closeCategoryVotingRecord(ctx, args.categoryId);
+    return null;
+  },
+});
+
+export const revealCategoryWinner = mutation({
+  args: { categoryId: v.id("campaignCategories") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const category = await ctx.db.get(args.categoryId);
+    if (!category) throw new Error("Category not found");
+
+    const campaign = await ctx.db.get(category.campaignId);
+    if (!campaign) throw new Error("Campaign not found");
+
+    await requireAdminMembership(ctx, campaign.workspaceId);
+    assertCanRunCategoryBallot(campaign);
+    await revealCategoryWinnerRecord(ctx, args.categoryId);
+    return null;
+  },
+});
+
+export const closeAllCategoryVoting = mutation({
+  args: { campaignId: v.id("campaigns") },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const campaign = await ctx.db.get(args.campaignId);
+    if (!campaign) throw new Error("Campaign not found");
+
+    await requireAdminMembership(ctx, campaign.workspaceId);
+    assertCanRunCategoryBallot(campaign);
+
+    const categories = await ctx.db
+      .query("campaignCategories")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
+
+    let closed = 0;
+    for (const category of categories) {
+      if (normalizeCategoryStatus(category.categoryStatus) !== "open") {
+        continue;
+      }
+      await closeCategoryVotingRecord(ctx, category._id);
+      closed += 1;
+    }
+    return closed;
+  },
+});
+
+export const revealAllCategoryWinners = mutation({
+  args: { campaignId: v.id("campaigns") },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const campaign = await ctx.db.get(args.campaignId);
+    if (!campaign) throw new Error("Campaign not found");
+
+    await requireAdminMembership(ctx, campaign.workspaceId);
+    assertCanRevealAllCategoryWinners(campaign);
+
+    const categories = await ctx.db
+      .query("campaignCategories")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
+
+    let revealed = 0;
+    for (const category of categories) {
+      if (
+        normalizeCategoryStatus(category.categoryStatus) !== "voting_closed"
+      ) {
+        continue;
+      }
+      await revealCategoryWinnerRecord(ctx, category._id);
+      revealed += 1;
+    }
+    return revealed;
+  },
+});
+
+/** @deprecated Use closeCategoryVoting + revealCategoryWinner */
 export const finalizeCategory = mutation({
   args: { categoryId: v.id("campaignCategories") },
   returns: v.null(),
@@ -449,21 +604,13 @@ export const finalizeCategory = mutation({
     if (!campaign) throw new Error("Campaign not found");
 
     await requireAdminMembership(ctx, campaign.workspaceId);
-    const normalized = await ctx.db.get(campaign._id);
-    if (!normalized) throw new Error("Campaign not found");
-    assertCanFinalizeCategory(normalized);
+    assertCanRunCategoryBallot(campaign);
 
-    const winnerNomineeId = await computeAutoWinnerNomineeId(
-      ctx,
-      category._id,
-      campaign._id,
-    );
-
-    await ctx.db.patch(args.categoryId, {
-      categoryStatus: "finished",
-      winnerNomineeId,
-      winnerSource: winnerNomineeId ? "auto" : undefined,
-    });
+    const status = normalizeCategoryStatus(category.categoryStatus);
+    if (status === "open") {
+      await closeCategoryVotingRecord(ctx, args.categoryId);
+    }
+    await revealCategoryWinnerRecord(ctx, args.categoryId);
     return null;
   },
 });
@@ -482,7 +629,12 @@ export const setCategoryWinner = mutation({
     if (!campaign) throw new Error("Campaign not found");
 
     await requireAdminMembership(ctx, campaign.workspaceId);
-    assertCanFinalizeCategory(campaign);
+    assertCanRunCategoryBallot(campaign);
+
+    const status = normalizeCategoryStatus(category.categoryStatus);
+    if (status === "finished") {
+      throw new Error("Cannot override winner after it has been revealed.");
+    }
 
     const nominee = await ctx.db.get(args.nomineeId);
     if (!nominee || nominee.categoryId !== category._id) {
@@ -490,10 +642,33 @@ export const setCategoryWinner = mutation({
     }
 
     await ctx.db.patch(args.categoryId, {
-      categoryStatus: "finished",
       winnerNomineeId: args.nomineeId,
       winnerSource: "override",
     });
     return null;
+  },
+});
+
+export const backfillCategorySlugs = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const categories = await ctx.db.query("campaignCategories").collect();
+    let count = 0;
+
+    for (const category of categories) {
+      if (category.slug) {
+        continue;
+      }
+      const slug = await resolveUniqueCategorySlug(
+        ctx,
+        category.campaignId,
+        category.name,
+      );
+      await ctx.db.patch(category._id, { slug });
+      count += 1;
+    }
+
+    return count;
   },
 });

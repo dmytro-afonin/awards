@@ -1,67 +1,54 @@
 "use client";
 
-import { SignInButton, UserButton, useAuth } from "@clerk/nextjs";
+import { SignInButton, useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { ModeToggle } from "@/components/mode-toggle";
+import { PublicShell } from "@/components/public/public-shell";
+import { PublicSitePage } from "@/components/public/public-site-page";
 
 export default function HomePage() {
   const { isLoaded, isSignedIn } = useAuth();
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-border px-6 py-4">
-        <span className="font-semibold text-foreground">Awards</span>
-        <div className="flex items-center gap-3">
-          <ModeToggle />
-          {isLoaded && !isSignedIn ? (
-            <SignInButton mode="modal">
-              <button
-                type="button"
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                Sign in
-              </button>
-            </SignInButton>
-          ) : null}
-          {isLoaded && isSignedIn ? <UserButton /> : null}
+    <PublicShell>
+      <section className="relative overflow-hidden border-b border-zinc-800 -mx-4 px-4 py-16 md:-mx-6 md:px-6 md:py-24 lg:-mx-8 lg:px-8">
+        <div className="absolute inset-0 bg-gradient-to-b from-amber-600/15 via-zinc-950 to-zinc-950" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(251,191,36,0.18),transparent_55%)]" />
+        <div className="relative text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-amber-500">
+            Public awards hub
+          </p>
+          <h1 className="mt-4 font-heading text-4xl font-bold uppercase tracking-tight text-white sm:text-5xl">
+            The awards experience
+          </h1>
+          <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-zinc-400">
+            Discover campaigns, follow the news, and cast your votes when voting
+            opens.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href="/campaigns"
+              className="bg-amber-500 px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] text-zinc-950 no-underline hover:bg-amber-400"
+            >
+              Explore campaigns
+            </Link>
+            {isLoaded && !isSignedIn ? (
+              <SignInButton mode="modal">
+                <button
+                  type="button"
+                  className="border border-zinc-600 px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] text-zinc-300 hover:border-amber-500/50 hover:text-amber-300"
+                >
+                  Sign in to vote
+                </button>
+              </SignInButton>
+            ) : null}
+          </div>
         </div>
-      </header>
-      <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-          Awards
-        </h1>
-        <p className="mt-4 max-w-md text-muted-foreground">
-          Convex and Clerk are wired up. Product work continues from{" "}
-          <code className="rounded-none bg-muted px-1.5 py-0.5 text-sm text-foreground">
-            docs.md
-          </code>{" "}
-          and the{" "}
-          <code className="rounded-none bg-muted px-1.5 py-0.5 text-sm text-foreground">
-            docs/
-          </code>{" "}
-          folder.
-        </p>
-        {isLoaded && !isSignedIn ? (
-          <p className="mt-6">
-            <Link
-              href="/sign-in"
-              className="rounded-none bg-amber-500 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-400"
-            >
-              Go to sign-in
-            </Link>
-          </p>
-        ) : null}
-        {isLoaded && isSignedIn ? (
-          <p className="mt-6">
-            <Link
-              href="/admin"
-              className="rounded-none bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-            >
-              Open admin
-            </Link>
-          </p>
-        ) : null}
-      </main>
-    </div>
+      </section>
+
+      <PublicSitePage
+        title="Coming soon"
+        description="News, FAQs, and campaign listings are being wired up. Use the header to explore the site structure."
+      />
+    </PublicShell>
   );
 }

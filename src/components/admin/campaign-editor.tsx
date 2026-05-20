@@ -27,6 +27,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   canEditCampaignMetadata,
+  isLiveCampaignLifecycle,
   normalizeCampaignLifecycle,
 } from "@/lib/campaign-lifecycle";
 import type { CampaignVisibility } from "@/lib/campaign-visibility";
@@ -231,10 +232,7 @@ export function CampaignEditor({ campaignId }: CampaignEditorProps) {
           <EmptyHeader>
             <EmptyTitle>Cannot edit</EmptyTitle>
             <EmptyDescription>
-              Only draft campaigns can be edited.{" "}
-              {campaignLifecycle
-                ? `This campaign is ${campaignLifecycle}.`
-                : null}
+              Archived campaigns cannot be edited.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -242,8 +240,16 @@ export function CampaignEditor({ campaignId }: CampaignEditorProps) {
     );
   }
 
+  const isLive = isLiveCampaignLifecycle(campaign.lifecycle);
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 md:p-6 lg:max-w-4xl">
+      {isLive ? (
+        <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-50">
+          This campaign is live ({campaignLifecycle}). Changes apply immediately
+          on the public page and may affect voters and shared links.
+        </div>
+      ) : null}
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">

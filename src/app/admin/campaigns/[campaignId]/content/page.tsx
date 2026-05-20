@@ -2,19 +2,15 @@
 
 import { api } from "@cvx/_generated/api";
 import type { Id } from "@cvx/_generated/dataModel";
+import { RiArrowLeftLine } from "@remixicon/react";
 import { useQuery } from "convex/react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
 import { CampaignCategoriesEditor } from "@/components/admin/campaign-categories-editor";
 import { CampaignLifecycleBadge } from "@/components/admin/campaign-lifecycle-badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyDescription,
@@ -24,6 +20,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   canManageCampaignContent,
+  isLiveCampaignLifecycle,
+  lifecycleLabel,
   normalizeCampaignLifecycle,
 } from "@/lib/campaign-lifecycle";
 
@@ -62,9 +60,10 @@ export default function AdminCampaignContentPage() {
 
   if (campaign === undefined) {
     return (
-      <div className="flex flex-col gap-3 p-4 md:p-6">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-64 w-full max-w-xl" />
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 md:p-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-10 w-full max-w-md" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
@@ -82,28 +81,44 @@ export default function AdminCampaignContentPage() {
   }
 
   const canEdit = canManageCampaignContent(campaign.lifecycle);
+  const isLive = isLiveCampaignLifecycle(campaign.lifecycle);
+  const detailHref = `/admin/campaigns/${campaignId}`;
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-6 p-4 md:p-6">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>Categories & nominees</CardTitle>
-            <CampaignLifecycleBadge lifecycle={campaign.lifecycle} />
-          </div>
-          <CardDescription>
-            {canEdit
-              ? "Add categories and nominees while the campaign is in draft."
-              : `${normalizeCampaignLifecycle(campaign.lifecycle)} campaigns cannot edit content.`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CampaignCategoriesEditor
-            campaignId={campaignId as Id<"campaigns">}
-            disabled={!canEdit}
-          />
-        </CardContent>
-      </Card>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="-ml-2 gap-1.5 text-muted-foreground"
+          nativeButton={false}
+          render={<Link href={detailHref} prefetch={false} />}
+        >
+          <RiArrowLeftLine className="size-4" />
+          Back to campaign
+        </Button>
+        <CampaignLifecycleBadge lifecycle={campaign.lifecycle} />
+      </div>
+
+      {isLive ? (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-950 dark:text-amber-50">
+          Live ({lifecycleLabel(campaign.lifecycle)}) — changes publish
+          immediately and may affect votes already cast.
+        </div>
+      ) : null}
+
+      {!canEdit ? (
+        <p className="text-sm text-muted-foreground">
+          {normalizeCampaignLifecycle(campaign.lifecycle)} campaigns cannot edit
+          content.
+        </p>
+      ) : null}
+
+      <CampaignCategoriesEditor
+        campaignId={campaignId as Id<"campaigns">}
+        disabled={!canEdit}
+      />
     </div>
   );
 }

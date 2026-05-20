@@ -7,7 +7,7 @@ import { parseWorkspaceIdFromSearch } from "@/lib/public-campaign-url";
 
 export function useCategoryAdjacency(
   slug: string,
-  categoryId: Id<"campaignCategories">,
+  categorySlug: string,
   searchString: string,
 ) {
   const workspaceId = parseWorkspaceIdFromSearch(searchString);
@@ -27,7 +27,7 @@ export function useCategoryAdjacency(
     };
   }
 
-  const index = campaign.categories.findIndex((c) => c._id === categoryId);
+  const index = campaign.categories.findIndex((c) => c.slug === categorySlug);
   const prev = index > 0 ? (campaign.categories[index - 1] ?? null) : null;
   const next =
     index >= 0 && index < campaign.categories.length - 1
@@ -46,3 +46,10 @@ export function useCategoryAdjacency(
     votedCount,
   };
 }
+
+export type AdjacentCategory = {
+  _id: Id<"campaignCategories">;
+  name: string;
+  slug: string;
+  selectedNomineeId: Id<"campaignNominees"> | null;
+};

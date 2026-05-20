@@ -2,11 +2,15 @@
 
 import { api } from "@cvx/_generated/api";
 import type { Id } from "@cvx/_generated/dataModel";
+import { RiStopCircleLine } from "@remixicon/react";
 import { useMutation } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
+import { EditCampaignButton } from "@/components/admin/campaign-detail/edit-campaign-button";
+import { ManageCategoriesButton } from "@/components/admin/campaign-detail/manage-categories-button";
+import { ToolbarActionButton } from "@/components/admin/campaign-detail/toolbar-icon-button";
 import { Button } from "@/components/ui/button";
 import {
   canArchiveCampaign,
@@ -21,6 +25,7 @@ import {
   normalizeCampaignLifecycle,
 } from "@/lib/campaign-lifecycle";
 import { publicCampaignPath } from "@/lib/public-campaign-url";
+import { cn } from "@/lib/utils";
 
 type CampaignLifecyclePanelProps = {
   campaignId: Id<"campaigns">;
@@ -30,6 +35,8 @@ type CampaignLifecyclePanelProps = {
   lifecycle: string;
   canLaunch: boolean;
   disabled?: boolean;
+  layout?: "stack" | "toolbar" | "compact-toolbar";
+  className?: string;
 };
 
 export function CampaignLifecyclePanel({
@@ -40,6 +47,8 @@ export function CampaignLifecyclePanel({
   lifecycle,
   canLaunch,
   disabled = false,
+  layout = "stack",
+  className,
 }: CampaignLifecyclePanelProps) {
   const router = useRouter();
   const { showShareMessage } = useAdmin();
@@ -165,117 +174,210 @@ export function CampaignLifecyclePanel({
 
   const publicHref = publicCampaignPath(slug, workspaceId);
 
+  const editDetails = canEditCampaignMetadata(lifecycle) ? (
+    <EditCampaignButton
+      key="edit-details"
+      campaignId={campaignId}
+      campaignName={campaignName}
+      lifecycle={lifecycle}
+      disabled={disabled}
+      size="sm"
+    />
+  ) : null;
+
+  const manageCategories = canManageCampaignContent(lifecycle) ? (
+    <ManageCategoriesButton
+      key="manage-categories"
+      campaignId={campaignId}
+      campaignName={campaignName}
+      lifecycle={lifecycle}
+      disabled={disabled}
+      size="sm"
+    />
+  ) : null;
+
+  const launchBrowse =
+    canLaunchFromDraft(lifecycle) && canLaunch ? (
+      <Button
+        key="launch-browse"
+        type="button"
+        variant="outline"
+        size="sm"
+        className="bg-background/80"
+        disabled={disabled}
+        onClick={handleLaunch}
+      >
+        Launch (browse only)
+      </Button>
+    ) : null;
+
+  const launchAndVote =
+    canLaunchFromDraft(lifecycle) && canLaunch ? (
+      <Button
+        key="launch-vote"
+        type="button"
+        size="sm"
+        disabled={disabled}
+        onClick={handleGoLiveAndVote}
+      >
+        Launch & open voting
+      </Button>
+    ) : null;
+
+  const openVotingBtn = canOpenVoting(lifecycle) ? (
+    <Button
+      key="open-voting"
+      type="button"
+      size="sm"
+      disabled={disabled}
+      onClick={handleOpenVoting}
+    >
+      Open voting
+    </Button>
+  ) : null;
+
+  const closeCampaignVotingBtn = canCloseVoting(lifecycle) ? (
+    <ToolbarActionButton
+      key="close-campaign-voting"
+      label="End campaign voting"
+      icon={<RiStopCircleLine className="size-4" />}
+      variant="default"
+      className="bg-sky-600 text-white hover:bg-sky-700"
+      disabled={disabled}
+      onClick={handleCloseVoting}
+    />
+  ) : null;
+
+  const finishBtn = canFinishCampaign(lifecycle) ? (
+    <Button
+      key="finish"
+      type="button"
+      size="sm"
+      disabled={disabled}
+      onClick={handleFinish}
+    >
+      Finish campaign
+    </Button>
+  ) : null;
+
+  const archiveBtn = canArchiveCampaign(lifecycle) ? (
+    <Button
+      key="archive"
+      type="button"
+      variant="outline"
+      size="sm"
+      className="bg-background/80"
+      disabled={disabled}
+      onClick={handleArchive}
+    >
+      Archive
+    </Button>
+  ) : null;
+
+  const deleteBtn = canDeleteCampaign(lifecycle) ? (
+    <Button
+      key="delete"
+      type="button"
+      variant="destructive"
+      size="sm"
+      disabled={disabled}
+      onClick={handleDelete}
+    >
+      Delete
+    </Button>
+  ) : null;
+
+  const viewPublicBtn = canViewPublicCampaign(lifecycle) ? (
+    <Button
+      key="view-public"
+      variant="outline"
+      size="sm"
+      className="bg-background/80"
+      nativeButton={false}
+      disabled={disabled}
+      render={
+        <Link
+          href={publicHref}
+          prefetch={false}
+          target="_blank"
+          rel="noopener noreferrer"
+        />
+      }
+    >
+      View campaign
+    </Button>
+  ) : null;
+
+  const launchHint =
+    canLaunchFromDraft(lifecycle) && !canLaunch ? (
+      <p key="launch-hint" className="text-xs text-muted-foreground">
+        Add at least one category with two nominees in each to launch.
+      </p>
+    ) : null;
+
+  const archivedNote =
+    state === "archived" ? (
+      <p key="archived" className="text-sm text-muted-foreground">
+        This campaign is archived.
+      </p>
+    ) : null;
+
+  if (layout === "compact-toolbar") {
+    const campaignPrimary =
+      launchAndVote ??
+      openVotingBtn ??
+      closeCampaignVotingBtn ??
+      finishBtn ??
+      archiveBtn;
+
+    return (
+      <div
+        className={cn("flex min-w-0 flex-wrap items-center gap-2", className)}
+      >
+        {campaignPrimary}
+        {launchBrowse && campaignPrimary === launchAndVote
+          ? launchBrowse
+          : null}
+        {deleteBtn}
+        {launchHint}
+        {archivedNote}
+      </div>
+    );
+  }
+
+  if (layout === "toolbar") {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        {editDetails}
+        {manageCategories}
+        {launchBrowse}
+        {launchAndVote}
+        {launchHint}
+        {openVotingBtn}
+        {closeCampaignVotingBtn}
+        {finishBtn}
+        {archiveBtn}
+        {deleteBtn}
+        {viewPublicBtn}
+        {archivedNote}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2">
-      {canEditCampaignMetadata(lifecycle) ? (
-        <Button
-          variant="outline"
-          size="default"
-          nativeButton={false}
-          disabled={disabled}
-          render={<Link href={`/admin/campaigns/${campaignId}/edit`} />}
-        >
-          Edit details
-        </Button>
-      ) : null}
-      {canManageCampaignContent(lifecycle) ? (
-        <Button
-          variant="outline"
-          size="default"
-          nativeButton={false}
-          disabled={disabled}
-          render={<Link href={`/admin/campaigns/${campaignId}/content`} />}
-        >
-          Manage categories
-        </Button>
-      ) : null}
-      {canLaunchFromDraft(lifecycle) && canLaunch ? (
-        <>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={disabled}
-            onClick={handleLaunch}
-          >
-            Launch (browse only)
-          </Button>
-          <Button
-            type="button"
-            disabled={disabled}
-            onClick={handleGoLiveAndVote}
-          >
-            Launch & open voting
-          </Button>
-        </>
-      ) : null}
-      {canLaunchFromDraft(lifecycle) && !canLaunch ? (
-        <p className="text-xs text-muted-foreground">
-          Add at least one category with two nominees in each to launch.
-        </p>
-      ) : null}
-      {canOpenVoting(lifecycle) ? (
-        <Button type="button" disabled={disabled} onClick={handleOpenVoting}>
-          Open voting
-        </Button>
-      ) : null}
-      {canCloseVoting(lifecycle) ? (
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={disabled}
-          onClick={handleCloseVoting}
-        >
-          Close voting
-        </Button>
-      ) : null}
-      {canFinishCampaign(lifecycle) ? (
-        <Button type="button" disabled={disabled} onClick={handleFinish}>
-          Finish campaign
-        </Button>
-      ) : null}
-      {canArchiveCampaign(lifecycle) ? (
-        <Button
-          type="button"
-          variant="outline"
-          disabled={disabled}
-          onClick={handleArchive}
-        >
-          Archive
-        </Button>
-      ) : null}
-      {canDeleteCampaign(lifecycle) ? (
-        <Button
-          type="button"
-          variant="destructive"
-          disabled={disabled}
-          onClick={handleDelete}
-        >
-          Delete
-        </Button>
-      ) : null}
-      {canViewPublicCampaign(lifecycle) ? (
-        <Button
-          variant="ghost"
-          size="default"
-          nativeButton={false}
-          disabled={disabled}
-          render={
-            <Link
-              href={publicHref}
-              prefetch={false}
-              target="_blank"
-              rel="noopener noreferrer"
-            />
-          }
-        >
-          View public page
-        </Button>
-      ) : null}
-      {state === "archived" ? (
-        <p className="text-sm text-muted-foreground">
-          This campaign is archived.
-        </p>
-      ) : null}
+      {editDetails}
+      {manageCategories}
+      {launchBrowse}
+      {launchAndVote}
+      {launchHint}
+      {openVotingBtn}
+      {closeCampaignVotingBtn}
+      {finishBtn}
+      {archiveBtn}
+      {deleteBtn}
+      {viewPublicBtn}
+      {archivedNote}
     </div>
   );
 }
