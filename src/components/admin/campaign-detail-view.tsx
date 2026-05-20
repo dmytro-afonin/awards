@@ -154,6 +154,8 @@ export function CampaignDetailView({
               href={publicCampaignPath(campaign.slug, campaign.workspaceId)}
               className={buttonVariants({ variant: "ghost", size: "sm" })}
               prefetch={false}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               View public page
             </Link>

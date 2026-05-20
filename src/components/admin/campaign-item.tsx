@@ -108,6 +108,8 @@ function CampaignRowActions({
       <Link
         href={viewHref}
         prefetch={false}
+        target="_blank"
+        rel="noopener noreferrer"
         className={buttonVariants({
           variant: "ghost",
           size: iconOnly ? "icon-sm" : "sm",

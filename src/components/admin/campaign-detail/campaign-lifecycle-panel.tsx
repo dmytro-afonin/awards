@@ -259,7 +259,14 @@ export function CampaignLifecyclePanel({
           size="default"
           nativeButton={false}
           disabled={disabled}
-          render={<Link href={publicHref} prefetch={false} />}
+          render={
+            <Link
+              href={publicHref}
+              prefetch={false}
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+          }
         >
           View public page
         </Button>
