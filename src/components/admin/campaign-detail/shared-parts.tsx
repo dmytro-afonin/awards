@@ -78,7 +78,7 @@ export function CategoriesOverviewList({
           canManageBallot={canManageBallot}
           isRunwayFocus={runwayCategory?._id === category._id}
           slug={slug}
-          workspaceId={workspaceId!}
+          workspaceId={workspaceId}
           showPublicLinks={showPublicLinks && Boolean(workspaceId)}
         />
       ))}
@@ -250,17 +250,16 @@ function CategoryOverviewItem({
   canManageBallot: boolean;
   isRunwayFocus?: boolean;
   slug: string;
-  workspaceId: Id<"workspaces">;
+  workspaceId?: Id<"workspaces">;
   showPublicLinks: boolean;
 }) {
   const winnerId = category.winnerNomineeId;
   const isGrid = nomineeLayout === "grid";
   const votesRevealed = category.categoryStatus === "finished";
-  const categoryPublicHref = publicCategoryPath(
-    slug,
-    workspaceId,
-    category.slug,
-  );
+  const categoryPublicHref =
+    workspaceId && showPublicLinks
+      ? publicCategoryPath(slug, workspaceId, category.slug)
+      : undefined;
   const nextCategory = nextCategoryInOrder(categories, category._id);
   const canAdvance = canAdvanceFromCategory(category.categoryStatus);
 
@@ -315,7 +314,7 @@ function CategoryOverviewItem({
             size="compact"
           />
         </div>
-        {showPublicLinks ? (
+        {showPublicLinks && categoryPublicHref ? (
           <HoverShareViewActions viewHref={categoryPublicHref} />
         ) : null}
         {canManageBallot &&

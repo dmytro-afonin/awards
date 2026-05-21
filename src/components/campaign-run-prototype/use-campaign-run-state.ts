@@ -200,6 +200,7 @@ export function useCampaignRunState() {
 
   const showAllWinners = useCallback(() => {
     if (awaitingRevealCount === 0) return;
+    if (votingOpenCount > 0 && !campaignVotingStopped) return;
     if (!confirmBulkShowWinners()) return;
 
     const next = categories.map((c) =>
@@ -215,8 +216,10 @@ export function useCampaignRunState() {
   }, [
     advanceFocusAfterAction,
     awaitingRevealCount,
+    campaignVotingStopped,
     categories,
     confirmBulkShowWinners,
+    votingOpenCount,
   ]);
 
   const selectCategory = useCallback(

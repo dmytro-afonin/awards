@@ -300,7 +300,13 @@ export function CategoryActionButtons({
             Show winner
           </Button>
         ) : null}
-        <Button type="button" variant="ghost" size="sm">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled
+          aria-label="Preview public (prototype only)"
+        >
           <RiExternalLinkLine />
           Preview public
         </Button>

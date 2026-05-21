@@ -19,6 +19,7 @@ export function StoryVoteGrid({ data, vote }: StoryVoteGridProps) {
             <button
               type="button"
               disabled={!vote.canSelect || vote.voteInFlight}
+              aria-pressed={Boolean(selected)}
               onClick={() => void vote.handleVote(nominee._id)}
               className={cn(
                 "group relative w-full text-left transition-transform hover:-translate-y-0.5",

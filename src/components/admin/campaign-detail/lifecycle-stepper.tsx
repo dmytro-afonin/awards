@@ -85,7 +85,9 @@ export function LifecycleStepper({
                 aria-hidden
               />
             ) : null}
-            {isHeroOverlay && index < LIFECYCLE_STEPS.length - 1 ? (
+            {orientation === "horizontal" &&
+            isHeroOverlay &&
+            index < LIFECYCLE_STEPS.length - 1 ? (
               <span
                 className={cn(
                   "absolute top-3.5 left-[calc(50%+0.75rem)] h-px w-[calc(100%-1.5rem)]",

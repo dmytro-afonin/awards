@@ -2,7 +2,7 @@
 
 import { RiCloseLine, RiMenuLine, RiUser3Line } from "@remixicon/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CAMPAIGN_NAV,
   MOCK_CAMPAIGN,
@@ -12,10 +12,68 @@ import {
 } from "@/components/public-prototype/public-nav-mock";
 import { cn } from "@/lib/utils";
 
+const SITE_MENU_DIALOG_ID = "spotlight-site-menu";
+
+function getFocusableElements(root: HTMLElement): HTMLElement[] {
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  );
+}
+
 /** Variant C — Spotlight: transparent header over hero; sticky pill subnav in campaign mode. */
 export function NavVariantSpotlight({ context }: { context: NavContext }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const closeMenuButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeMenuButtonRef.current?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMenuOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const dialog = document.getElementById(SITE_MENU_DIALOG_ID);
+      if (!dialog) {
+        return;
+      }
+
+      const focusable = getFocusableElements(dialog);
+      if (focusable.length === 0) {
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [menuOpen]);
 
   return (
     <div className="min-h-dvh bg-neutral-950 text-neutral-100">
@@ -33,6 +91,8 @@ export function NavVariantSpotlight({ context }: { context: NavContext }) {
             type="button"
             className="flex items-center gap-2 text-sm font-medium text-white/90 hover:text-white"
             onClick={() => setMenuOpen(true)}
+            aria-expanded={menuOpen}
+            aria-controls={SITE_MENU_DIALOG_ID}
             aria-label="Open site menu"
           >
             <RiMenuLine className="size-5" />
@@ -58,12 +118,18 @@ export function NavVariantSpotlight({ context }: { context: NavContext }) {
 
         {menuOpen ? (
           <div
+            id={SITE_MENU_DIALOG_ID}
             className="fixed inset-0 z-50 flex bg-neutral-950/98 backdrop-blur-lg"
             role="dialog"
             aria-modal="true"
+            aria-labelledby="spotlight-site-menu-title"
           >
             <div className="flex w-full max-w-md flex-col p-8">
+              <p id="spotlight-site-menu-title" className="sr-only">
+                Site menu
+              </p>
               <button
+                ref={closeMenuButtonRef}
                 type="button"
                 className="mb-10 flex w-fit items-center gap-2 text-sm text-neutral-400 hover:text-white"
                 onClick={() => setMenuOpen(false)}

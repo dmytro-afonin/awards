@@ -592,7 +592,10 @@ export const revealAllCategoryWinners = mutation({
   },
 });
 
-/** @deprecated Use closeCategoryVoting + revealCategoryWinner */
+/** @deprecated Use closeCategoryVoting + revealCategoryWinner.
+ * If a category has zero votes, closeCategoryVotingRecord clears winnerNomineeId and
+ * revealCategoryWinnerRecord throws "No winner to reveal", leaving the category stuck
+ * in voting_closed. Prefer the explicit two-step flow to avoid that intermediate state. */
 export const finalizeCategory = mutation({
   args: { categoryId: v.id("campaignCategories") },
   returns: v.null(),

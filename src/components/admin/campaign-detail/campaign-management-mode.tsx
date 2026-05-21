@@ -18,7 +18,14 @@ export function saveCampaignManagementMode(
   campaignId: string,
   mode: CampaignManagementMode,
 ): void {
-  window.localStorage.setItem(`${STORAGE_PREFIX}${campaignId}`, mode);
+  if (typeof window === "undefined" || !window.localStorage) {
+    return;
+  }
+  try {
+    window.localStorage.setItem(`${STORAGE_PREFIX}${campaignId}`, mode);
+  } catch (error) {
+    console.warn("Could not persist campaign management mode", error);
+  }
 }
 
 export function CampaignManagementModeSwitch({

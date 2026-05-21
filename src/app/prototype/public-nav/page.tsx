@@ -6,7 +6,7 @@
  */
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback } from "react";
 import { NavVariantArena } from "@/components/public-prototype/nav-variant-arena";
 import { NavVariantFestival } from "@/components/public-prototype/nav-variant-festival";
 import { NavVariantSpotlight } from "@/components/public-prototype/nav-variant-spotlight";
@@ -19,15 +19,18 @@ function parseVariant(raw: string | null): PublicNavVariantId {
   return "A";
 }
 
+function parseContext(raw: string | null): NavContext {
+  return raw === "campaign" ? "campaign" : "site";
+}
+
 function PublicNavPrototypeInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const variant = parseVariant(searchParams.get("variant"));
-  const [context, setContext] = useState<NavContext>("site");
+  const context = parseContext(searchParams.get("context"));
 
   const setContextParam = useCallback(
     (next: NavContext) => {
-      setContext(next);
       const params = new URLSearchParams(searchParams.toString());
       params.set("context", next);
       router.replace(`?${params.toString()}`);

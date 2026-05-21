@@ -35,9 +35,7 @@ function defaultFocusCategory(
 export function CampaignRunLead({
   categories,
 }: {
-  campaignId: Id<"campaigns">;
   categories: CategoryOverview[];
-  campaignLifecycle: string;
 }) {
   const [focusId, setFocusId] = useState<Id<"campaignCategories"> | null>(null);
   const [celebrateReveal, setCelebrateReveal] = useState(false);
@@ -55,9 +53,11 @@ export function CampaignRunLead({
     return defaultFocusCategory(categories);
   }, [categories, focusId]);
 
+  const focusCategoryStatus = focus?.categoryStatus;
+
   useEffect(() => {
     setCelebrateReveal(false);
-  }, [focus?._id, focus?.categoryStatus]);
+  }, [focusId, focusCategoryStatus]);
 
   const nextCategory = focus
     ? nextCategoryInOrder(categories, focus._id)

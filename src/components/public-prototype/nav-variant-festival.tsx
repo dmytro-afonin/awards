@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 /** Variant B — Festival: light editorial site; campaign uses a left sidebar rail. */
 export function NavVariantFestival({ context }: { context: NavContext }) {
   const [userOpen, setUserOpen] = useState(false);
+  const userMenuId = "festival-user-menu";
 
   return (
     <div className="min-h-dvh bg-stone-50 text-stone-900">
@@ -52,17 +53,25 @@ export function NavVariantFestival({ context }: { context: NavContext }) {
               <button
                 type="button"
                 onClick={() => setUserOpen((o) => !o)}
+                aria-expanded={userOpen}
+                aria-controls={userMenuId}
+                aria-haspopup="menu"
                 className="flex items-center gap-1.5 rounded-full border border-stone-300 bg-stone-100 px-3 py-1.5 text-sm font-medium text-stone-800 hover:bg-stone-200"
               >
                 You
                 <RiArrowDownSLine className="size-4 text-stone-500" />
               </button>
               {userOpen ? (
-                <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-stone-200 bg-white py-1 shadow-lg">
+                <div
+                  id={userMenuId}
+                  role="menu"
+                  className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-stone-200 bg-white py-1 shadow-lg"
+                >
                   {USER_MENU.map((item) => (
                     <Link
                       key={item.label}
                       href={item.href}
+                      role="menuitem"
                       className="block px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50"
                       onClick={() => setUserOpen(false)}
                     >

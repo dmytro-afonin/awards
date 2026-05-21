@@ -52,7 +52,11 @@ export function VisibilityChangeDialog({
           <Dialog.Title className="text-lg font-semibold">
             Change visibility?
           </Dialog.Title>
-          <Dialog.Description className="mt-2 space-y-2 text-sm text-muted-foreground">
+          <Dialog.Description
+            render={
+              <div className="mt-2 space-y-2 text-sm text-muted-foreground" />
+            }
+          >
             <p>
               Switch from <strong>{VISIBILITY_LABELS[from]}</strong> to{" "}
               <strong>{VISIBILITY_LABELS[to]}</strong>.

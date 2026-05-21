@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 export function NavVariantArena({ context }: { context: NavContext }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const userMenuId = "arena-user-menu";
+  const mobileMenuId = "arena-mobile-menu";
   const leftNav = SITE_NAV.slice(0, 3);
   const rightNav = SITE_NAV.slice(3);
 
@@ -61,6 +63,9 @@ export function NavVariantArena({ context }: { context: NavContext }) {
               <button
                 type="button"
                 onClick={() => setUserOpen((o) => !o)}
+                aria-expanded={userOpen}
+                aria-controls={userMenuId}
+                aria-haspopup="menu"
                 className="flex items-center gap-2 border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-amber-300 hover:bg-amber-500/20"
               >
                 <RiUser3Line className="size-4" />
@@ -68,11 +73,16 @@ export function NavVariantArena({ context }: { context: NavContext }) {
                 <RiArrowDownSLine className="size-4" />
               </button>
               {userOpen ? (
-                <div className="absolute right-0 top-full z-50 mt-2 min-w-[11rem] border border-amber-500/30 bg-zinc-900 py-1 shadow-xl">
+                <div
+                  id={userMenuId}
+                  role="menu"
+                  className="absolute right-0 top-full z-50 mt-2 min-w-[11rem] border border-amber-500/30 bg-zinc-900 py-1 shadow-xl"
+                >
                   {USER_MENU.map((item) => (
                     <Link
                       key={item.label}
                       href={item.href}
+                      role="menuitem"
                       className={cn(
                         "block px-4 py-2.5 text-sm text-zinc-200 hover:bg-amber-500/10 hover:text-amber-300",
                         "adminOnly" in item &&
@@ -98,6 +108,8 @@ export function NavVariantArena({ context }: { context: NavContext }) {
             type="button"
             className="flex size-10 items-center justify-center text-amber-400 lg:hidden"
             onClick={() => setMobileOpen((o) => !o)}
+            aria-expanded={mobileOpen}
+            aria-controls={mobileMenuId}
             aria-label="Open menu"
           >
             <RiMenuLine className="size-6" />
@@ -105,7 +117,10 @@ export function NavVariantArena({ context }: { context: NavContext }) {
         </div>
 
         {mobileOpen ? (
-          <div className="border-t border-zinc-800 px-4 py-4 lg:hidden">
+          <div
+            id={mobileMenuId}
+            className="border-t border-zinc-800 px-4 py-4 lg:hidden"
+          >
             <nav className="flex flex-col gap-3">
               {SITE_NAV.map((item) => (
                 <Link

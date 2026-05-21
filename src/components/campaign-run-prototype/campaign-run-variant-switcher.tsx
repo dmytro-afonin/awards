@@ -74,11 +74,16 @@ export function CampaignRunVariantSwitcher({
   );
 
   useEffect(() => {
+    if (process.env.NODE_ENV === "production") {
+      return;
+    }
+
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
       if (
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
         (target instanceof HTMLElement && target.isContentEditable)
       ) {
         return;

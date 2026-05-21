@@ -189,3 +189,11 @@ html {
 @utility animate-winner-glow {
   animation: winner-glow-pulse 2.2s ease-in-out infinite;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.animate-winner-reveal, .animate-winner-trophy, .animate-winner-glow) {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

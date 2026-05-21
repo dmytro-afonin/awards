@@ -15,7 +15,7 @@ type LiveCampaignWarningDialogProps = {
   summary?: string;
   bullets: string[];
   confirmLabel: string;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 };
 
 export function LiveCampaignWarningDialog({
@@ -80,8 +80,14 @@ export function LiveCampaignWarningDialog({
             <Button
               type="button"
               onClick={() => {
-                onConfirm();
-                onOpenChange(false);
+                void (async () => {
+                  try {
+                    await onConfirm();
+                    onOpenChange(false);
+                  } catch {
+                    // Keep dialog open so the admin can retry.
+                  }
+                })();
               }}
             >
               {confirmLabel}

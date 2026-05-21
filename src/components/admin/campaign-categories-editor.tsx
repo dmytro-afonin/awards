@@ -50,6 +50,8 @@ export function CampaignCategoriesEditor({
   const [newCategoryName, setNewCategoryName] = useState("");
   const [nomineeNames, setNomineeNames] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] =
+    useState<Id<"campaignCategories"> | null>(null);
 
   if (categories === undefined) {
     return (
@@ -82,6 +84,18 @@ export function CampaignCategoriesEditor({
       setNomineeNames((prev) => ({ ...prev, [categoryId]: "" }));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleRemoveCategory = async (categoryId: Id<"campaignCategories">) => {
+    if (disabled || busy || deletingCategoryId) return;
+    setDeletingCategoryId(categoryId);
+    try {
+      await removeCategory({ categoryId });
+    } catch {
+      // Mutation errors surface via Convex; keep UI responsive.
+    } finally {
+      setDeletingCategoryId(null);
     }
   };
 
@@ -209,11 +223,13 @@ export function CampaignCategoriesEditor({
                         variant="ghost"
                         size="icon-sm"
                         className="ml-auto size-8 text-muted-foreground hover:text-destructive"
-                        disabled={disabled || busy}
-                        aria-label={`Remove ${category.name}`}
-                        onClick={() =>
-                          removeCategory({ categoryId: category._id })
+                        disabled={
+                          disabled ||
+                          busy ||
+                          deletingCategoryId === category._id
                         }
+                        aria-label={`Remove ${category.name}`}
+                        onClick={() => void handleRemoveCategory(category._id)}
                       >
                         <RiDeleteBinLine className="size-4" />
                       </Button>

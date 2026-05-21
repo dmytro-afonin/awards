@@ -34,7 +34,6 @@ export function CategoryFlowNav({
   next,
   categoriesHref,
   className,
-  nextRequiresVote = true,
   activeSelection,
   votingOpen = true,
   categoryStatus,
@@ -47,7 +46,6 @@ export function CategoryFlowNav({
   next: AdjacentCategory | null;
   categoriesHref?: string;
   className?: string;
-  nextRequiresVote?: boolean;
   activeSelection: Id<"campaignNominees"> | null;
   votingOpen?: boolean;
   categoryStatus?: CategoryRunStatus;
