@@ -5,6 +5,7 @@ import { normalizeCampaignLifecycle } from "./lib/campaignLifecycleNormalize";
 import { categorySlugForOutput, findCategoryBySlug } from "./lib/categorySlug";
 import {
   isCategoryVotingOpen,
+  isCategoryWinnerPublic,
   normalizeCategoryStatus,
 } from "./lib/categoryStatus";
 import { resolveStorageImageUrl } from "./lib/images";
@@ -12,11 +13,22 @@ import {
   canViewCampaign,
   canVoteOnCampaign,
   findCampaignBySlug,
+  isPubliclyVisibleLifecycle,
   isVotingOpen,
   resolveCampaignImageUrl,
 } from "./lib/publicCampaign";
 import { getOrCreateUserId, getUserId } from "./lib/users";
-import { campaignLifecycle, categoryStatus } from "./schema";
+import {
+  campaignLifecycle,
+  campaignVisibility,
+  categoryStatus,
+} from "./schema";
+
+const publicWinner = v.object({
+  _id: v.id("campaignNominees"),
+  name: v.string(),
+  imageUrl: v.optional(v.string()),
+});
 
 const categoryCard = v.object({
   _id: v.id("campaignCategories"),
@@ -26,6 +38,7 @@ const categoryCard = v.object({
   nomineeCount: v.number(),
   selectedNomineeId: v.union(v.id("campaignNominees"), v.null()),
   categoryStatus: categoryStatus,
+  winner: v.union(publicWinner, v.null()),
 });
 
 const publicCampaign = v.object({
@@ -68,7 +81,29 @@ const publicCategory = v.object({
   selectedNomineeId: v.union(v.id("campaignNominees"), v.null()),
   votingOpen: v.boolean(),
   canVote: v.boolean(),
+  winner: v.union(publicWinner, v.null()),
 });
+
+async function loadPublicWinner(
+  ctx: Parameters<typeof resolveStorageImageUrl>[0],
+  category: Doc<"campaignCategories">,
+) {
+  if (!isCategoryWinnerPublic(category.categoryStatus)) {
+    return null;
+  }
+  if (!category.winnerNomineeId) {
+    return null;
+  }
+  const nominee = await ctx.db.get(category.winnerNomineeId);
+  if (!nominee) {
+    return null;
+  }
+  return {
+    _id: nominee._id,
+    name: nominee.name,
+    imageUrl: await resolveStorageImageUrl(ctx, nominee.imageStorageId),
+  };
+}
 
 async function loadCategoryCards(
   ctx: Parameters<typeof canViewCampaign>[0],
@@ -109,6 +144,7 @@ async function loadCategoryCards(
         nomineeCount: nominees.length,
         selectedNomineeId: voteByCategory.get(category._id) ?? null,
         categoryStatus: normalizeCategoryStatus(category.categoryStatus),
+        winner: await loadPublicWinner(ctx, category),
       };
     }),
   );
@@ -256,6 +292,7 @@ export const getCategory = query({
       selectedNomineeId,
       votingOpen,
       canVote,
+      winner: await loadPublicWinner(ctx, category),
     };
   },
 });
@@ -327,6 +364,7 @@ const campaignNomineeRow = v.object({
   categoryName: v.string(),
   voteCount: v.number(),
   sortOrder: v.number(),
+  isWinner: v.boolean(),
 });
 
 const allNomineesPayload = v.object({
@@ -392,6 +430,9 @@ export const listAllNominees = query({
             voteCount: votesByNominee.get(nominee._id) ?? 0,
             sortOrder: nominee.sortOrder,
             categorySortOrder: category.sortOrder,
+            isWinner:
+              isCategoryWinnerPublic(category.categoryStatus) &&
+              category.winnerNomineeId === nominee._id,
           })),
         );
       }),
@@ -415,5 +456,67 @@ export const listAllNominees = query({
       },
       nominees,
     };
+  },
+});
+
+const publicCampaignListItem = v.object({
+  _id: v.id("campaigns"),
+  workspaceId: v.id("workspaces"),
+  name: v.string(),
+  description: v.optional(v.string()),
+  slug: v.string(),
+  lifecycle: campaignLifecycle,
+  visibility: campaignVisibility,
+  imageUrl: v.optional(v.string()),
+  votingOpen: v.boolean(),
+  canVote: v.boolean(),
+});
+
+/** Public directory: all public campaigns plus private ones the signed-in user can access. */
+export const listDirectory = query({
+  args: {},
+  returns: v.array(publicCampaignListItem),
+  handler: async (ctx) => {
+    const now = Date.now();
+    const userId = await getUserId(ctx);
+
+    const memberWorkspaceIds = new Set<Id<"workspaces">>();
+    if (userId) {
+      const memberships = await ctx.db
+        .query("workspaceMembers")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const membership of memberships) {
+        memberWorkspaceIds.add(membership.workspaceId);
+      }
+    }
+
+    const campaigns = await ctx.db.query("campaigns").collect();
+    const browsable = campaigns.filter((campaign) => {
+      if (!isPubliclyVisibleLifecycle(campaign.lifecycle)) {
+        return false;
+      }
+      if (campaign.visibility === "public") {
+        return true;
+      }
+      return memberWorkspaceIds.has(campaign.workspaceId);
+    });
+
+    const rows = await Promise.all(
+      browsable.map(async (campaign) => ({
+        _id: campaign._id,
+        workspaceId: campaign.workspaceId,
+        name: campaign.name,
+        description: campaign.description,
+        slug: campaign.slug,
+        lifecycle: normalizeCampaignLifecycle(campaign.lifecycle as string),
+        visibility: campaign.visibility,
+        imageUrl: await resolveCampaignImageUrl(ctx, campaign),
+        votingOpen: isVotingOpen(campaign, now),
+        canVote: await canVoteOnCampaign(ctx, campaign, userId, now),
+      })),
+    );
+
+    return rows.sort((a, b) => a.name.localeCompare(b.name));
   },
 });

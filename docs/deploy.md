@@ -28,33 +28,31 @@ Set on Vercel (and locally in `.env.local`):
 - `NEXT_PUBLIC_CONVEX_URL` — set automatically when using Convex + Vercel integration, or point at your prod deployment
 - `CONVEX_DEPLOY_KEY` — required for `convex deploy` on Vercel
 
-## Category slug migration (PR #10+)
+## Data migrations
 
-Categories gained a `slug` field for public URLs. Existing production rows may lack `slug` until backfill runs.
+This repo uses the official [`@convex-dev/migrations`](https://www.convex.dev/components/migrations) component. Migrations are defined in `convex/migrations.ts` and run explicitly from a member-authenticated CLI session.
 
-| Phase | Schema | Action |
-|-------|--------|--------|
-| Deploy (current) | `slug` optional | Vercel deploy succeeds (no backfill in CI) |
-| One-time backfill | still optional | Run manually from a member-authenticated CLI |
-| After backfill | all rows have `slug` | Optional: narrow schema to `slug: v.string()` |
-
-### One-time backfill (required after first deploy)
-
-Run locally while logged in to Convex (`npx convex login`), **not** via Vercel:
+### Run migrations
 
 ```bash
-# Production
-bun run convex:backfill-category-slugs:prod
-
 # Dev deployment
-bun run convex:backfill-category-slugs
+bun run convex:migrate
+
+# Production (clear CONVEX_DEPLOY_KEY if your .env.local points at dev)
+CONVEX_DEPLOY_KEY= bun run convex:migrate:prod
 ```
 
-### Verify migration complete
+### Check migration status
 
 ```bash
-npx convex run migrations:categorySlugMigrationStatus --prod
-# { "missingSlugCount": 0 } → safe to make slug required in schema.ts
+bun run convex:migrate:status
+```
+
+### Verify category slug backfill
+
+```bash
+CONVEX_DEPLOY_KEY= npx convex run migrations:categorySlugMigrationStatus --prod
+# { "missingSlugCount": 0 } → all categories have slugs
 ```
 
 ## Local production dry-run
@@ -64,3 +62,5 @@ bun run deploy:production
 ```
 
 Uses `CONVEX_DEPLOY_KEY` if set, otherwise your logged-in Convex CLI session.
+
+When running prod mutations locally, prefix commands with `CONVEX_DEPLOY_KEY=` if `.env.local` contains a dev deploy key — otherwise `--prod` is ignored.

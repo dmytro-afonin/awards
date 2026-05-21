@@ -74,8 +74,7 @@ export default defineSchema({
   campaignCategories: defineTable({
     campaignId: v.id("campaigns"),
     name: v.string(),
-    /** Optional until prod backfill completes; see docs/deploy.md and migrations:backfillCategorySlugs */
-    slug: v.optional(v.string()),
+    slug: v.string(),
     sortOrder: v.number(),
     imageStorageId: v.optional(v.id("_storage")),
     categoryStatus: v.optional(categoryStatus),

@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@cvx/_generated/api";
+import { RiTrophyLine } from "@remixicon/react";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useSearchParams } from "next/navigation";
@@ -10,15 +11,18 @@ import {
 } from "@/components/public/layouts/page-states";
 import {
   BoxyImage,
-  GrainOverlay,
+  ScanlineOverlay,
 } from "@/components/public/layouts/story-boxy/shared";
 import { parseWorkspaceIdFromSearch } from "@/lib/public-campaign-url";
+import { cn } from "@/lib/utils";
 
 type NomineesPayload = NonNullable<
   FunctionReturnType<typeof api.publicCampaigns.listAllNominees>
 >;
 
-/** Flat nominee directory — rich cards, no category grouping */
+type NomineeRow = NomineesPayload["nominees"][number];
+
+/** Compact playful nominee directory — same tile language as the vote grid */
 export function StoryBoxyNomineesPage({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
   const workspaceId = parseWorkspaceIdFromSearch(searchParams.toString());
@@ -31,60 +35,84 @@ export function StoryBoxyNomineesPage({ slug }: { slug: string }) {
     <PageGate loading={payload === undefined} notFound={payload === null}>
       {payload ? (
         <VariantFrame wide>
-          <header className="mb-6 border-l-4 border-amber-500 pl-4">
-            <h1 className="font-heading text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">
+          <header className="mb-4 border-l-2 border-amber-500 pl-3">
+            <h1 className="font-heading text-xl font-bold uppercase tracking-tight text-white md:text-2xl">
               Nominees
             </h1>
-            <p className="mt-2 max-w-xl text-sm text-zinc-400">
-              Everyone in the running for {payload.campaign.name} —{" "}
-              {payload.nominees.length} entries across all categories.
+            <p className="mt-1 max-w-lg text-xs text-zinc-500">
+              Everyone in the running for {payload.campaign.name}.
             </p>
           </header>
 
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {payload.nominees.map(
-              (nominee: NomineesPayload["nominees"][number], i: number) => (
-                <li
-                  key={nominee._id}
-                  className="flex flex-col border border-zinc-800 bg-zinc-900/80 transition-colors hover:border-amber-500/40"
-                >
-                  <BoxyImage
-                    imageUrl={nominee.imageUrl}
-                    label={nominee.name}
-                    aspect={5 / 4}
-                    className="border-0 border-b border-zinc-800"
-                    filterClassName="saturate-[1.05]"
-                  >
-                    <GrainOverlay />
-                  </BoxyImage>
-                  <div className="flex flex-1 flex-col gap-2 p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-500/90">
-                      {nominee.categoryName}
-                    </p>
-                    <h2 className="font-heading text-lg font-bold leading-snug text-white">
-                      {nominee.name}
-                    </h2>
-                    <dl className="mt-auto grid grid-cols-2 gap-2 border-t border-zinc-800 pt-3 text-xs">
-                      <div>
-                        <dt className="text-zinc-500">Votes</dt>
-                        <dd className="font-mono text-base font-semibold tabular-nums text-amber-300">
-                          {nominee.voteCount}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-zinc-500">Entry</dt>
-                        <dd className="font-mono tabular-nums text-zinc-300">
-                          #{String(i + 1).padStart(2, "0")}
-                        </dd>
-                      </div>
-                    </dl>
-                  </div>
-                </li>
-              ),
-            )}
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {payload.nominees.map((nominee: NomineeRow, index: number) => (
+              <NomineeTile key={nominee._id} nominee={nominee} index={index} />
+            ))}
           </ul>
         </VariantFrame>
       ) : null}
     </PageGate>
+  );
+}
+
+function NomineeTile({
+  nominee,
+  index,
+}: {
+  nominee: NomineeRow;
+  index: number;
+}) {
+  const playfulTilt = index % 2 === 0 ? "hover:-rotate-1" : "hover:rotate-1";
+
+  return (
+    <li className="p-1">
+      <article
+        className={cn(
+          "group relative rounded-md p-2 transition-all duration-300",
+          "hover:-translate-y-1 hover:shadow-[0_10px_28px_rgba(251,191,36,0.18)]",
+          playfulTilt,
+          nominee.isWinner &&
+            "scale-[1.03] bg-emerald-500/10 shadow-[0_0_0_1px_rgba(52,211,153,0.45),0_12px_32px_rgba(16,185,129,0.22)] ring-2 ring-emerald-400 ring-offset-2 ring-offset-zinc-950",
+        )}
+      >
+        {nominee.isWinner ? (
+          <span className="absolute -right-1 -top-1 z-10 inline-flex rotate-3 items-center gap-0.5 rounded-sm bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-zinc-950 shadow-md">
+            <RiTrophyLine className="size-3" aria-hidden />
+            Winner
+          </span>
+        ) : (
+          <span className="absolute left-2 top-2 z-10 size-0 border-t-[18px] border-r-[18px] border-t-amber-500 border-r-transparent opacity-90 transition-transform group-hover:scale-110" />
+        )}
+
+        <BoxyImage
+          imageUrl={nominee.imageUrl}
+          label={nominee.name}
+          aspect={3 / 4}
+          className={cn(
+            "rounded-sm border-zinc-700/80",
+            nominee.isWinner && "border-emerald-400/60",
+          )}
+        >
+          <ScanlineOverlay />
+          <div className="absolute inset-x-0 bottom-0 rounded-b-sm bg-gradient-to-t from-zinc-950 via-zinc-950/95 to-transparent px-2.5 pb-2.5 pt-8">
+            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-amber-500/90">
+              {nominee.categoryName}
+            </p>
+            <p className="mt-0.5 line-clamp-2 font-heading text-sm font-bold leading-tight text-white">
+              {nominee.name}
+            </p>
+            {nominee.isWinner ? (
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-400">
+                Winner
+              </p>
+            ) : (
+              <p className="mt-1 font-mono text-[10px] tabular-nums text-zinc-500">
+                {nominee.voteCount} vote{nominee.voteCount === 1 ? "" : "s"}
+              </p>
+            )}
+          </div>
+        </BoxyImage>
+      </article>
+    </li>
   );
 }
