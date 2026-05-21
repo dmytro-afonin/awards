@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "deploy:production": "convex deploy --cmd 'bun run build' && convex run migrations:backfillCategorySlugs --prod",
+    "deploy:production": "convex deploy --cmd 'bun run build'",
     "start": "next start",
     "check": "biome check --write .",
     "typecheck": "tsc --noEmit",
