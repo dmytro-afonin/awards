@@ -1,5 +1,9 @@
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
+import {
+  backfillMissingCategorySlugs,
+  countCategoriesMissingSlug,
+} from "./lib/categorySlug";
 
 /** One-time: migrate lifecycle enum to draft/launched/vote_live/vote_ended/finished/archived. */
 export const migrateToNewLifecycle = internalMutation({
@@ -24,4 +28,22 @@ export const migrateToNewLifecycle = internalMutation({
     }
     return updated;
   },
+});
+
+/** Backfill slug on campaignCategories rows created before the slug field existed. Idempotent. */
+export const backfillCategorySlugs = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => backfillMissingCategorySlugs(ctx),
+});
+
+/** How many categories still need slug backfill (0 = safe to narrow schema to required slug). */
+export const categorySlugMigrationStatus = internalQuery({
+  args: {},
+  returns: v.object({
+    missingSlugCount: v.number(),
+  }),
+  handler: async (ctx) => ({
+    missingSlugCount: await countCategoriesMissingSlug(ctx),
+  }),
 });
