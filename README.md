@@ -39,7 +39,22 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 | `bun run check` | Biome check (write) |
 | `bun run typecheck` | TypeScript (`tsc --noEmit`) |
 | `bun run convex:codegen` | Regenerate `convex/_generated` types |
+| `bun run deploy:production` | Vercel/CI: Convex deploy + Next build + slug backfill |
+| `bun run convex:backfill-category-slugs:prod` | Backfill category slugs on production Convex |
 
 ## Deploy (Vercel)
 
-Set the same environment variables as local. Use `bunx convex deploy` for a production Convex deployment, then point `NEXT_PUBLIC_CONVEX_URL` at that deployment.
+See **[docs/deploy.md](docs/deploy.md)** for the full checklist.
+
+Summary:
+
+1. Set Clerk + Convex env vars on Vercel (including `CONVEX_DEPLOY_KEY` for prod deploys).
+2. Vercel uses `bun run deploy:production` from `vercel.json` — Convex deploy, Next.js build, then category slug backfill.
+3. After the first successful prod deploy, confirm migration status:
+
+   ```bash
+   bun run convex:backfill-category-slugs:prod
+   npx convex run migrations:categorySlugMigrationStatus --prod
+   ```
+
+   When `missingSlugCount` is `0`, you can optionally narrow `campaignCategories.slug` to required in `convex/schema.ts`.

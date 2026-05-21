@@ -1,11 +1,6 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import {
-  internalMutation,
-  type MutationCtx,
-  mutation,
-  query,
-} from "./_generated/server";
+import { type MutationCtx, mutation, query } from "./_generated/server";
 import { requireAdminMembership } from "./lib/access";
 import {
   assertCanRevealAllCategoryWinners,
@@ -16,7 +11,10 @@ import {
   getCategoryNomineeCounts,
   syncCampaignContentCounts,
 } from "./lib/campaignReady";
-import { resolveUniqueCategorySlug } from "./lib/categorySlug";
+import {
+  categorySlugForOutput,
+  resolveUniqueCategorySlug,
+} from "./lib/categorySlug";
 import { normalizeCategoryStatus } from "./lib/categoryStatus";
 import { computeAutoWinnerNomineeId } from "./lib/categoryWinner";
 import {
@@ -86,7 +84,7 @@ export const listForCampaign = query({
           _id: category._id,
           campaignId: category.campaignId,
           name: category.name,
-          slug: category.slug,
+          slug: categorySlugForOutput(category),
           sortOrder: category.sortOrder,
           imageUrl: categoryImageUrl,
           nominees: (
@@ -394,7 +392,7 @@ export const overviewForAdmin = query({
         return {
           _id: category._id,
           name: category.name,
-          slug: category.slug,
+          slug: categorySlugForOutput(category),
           sortOrder: category.sortOrder,
           imageUrl: await resolveStorageImageUrl(ctx, category.imageStorageId),
           categoryStatus: category.categoryStatus ?? "open",
@@ -649,29 +647,5 @@ export const setCategoryWinner = mutation({
       winnerSource: "override",
     });
     return null;
-  },
-});
-
-export const backfillCategorySlugs = internalMutation({
-  args: {},
-  returns: v.number(),
-  handler: async (ctx) => {
-    const categories = await ctx.db.query("campaignCategories").collect();
-    let count = 0;
-
-    for (const category of categories) {
-      if (category.slug) {
-        continue;
-      }
-      const slug = await resolveUniqueCategorySlug(
-        ctx,
-        category.campaignId,
-        category.name,
-      );
-      await ctx.db.patch(category._id, { slug });
-      count += 1;
-    }
-
-    return count;
   },
 });

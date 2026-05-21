@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { normalizeCampaignLifecycle } from "./lib/campaignLifecycleNormalize";
-import { findCategoryBySlug } from "./lib/categorySlug";
+import { categorySlugForOutput, findCategoryBySlug } from "./lib/categorySlug";
 import {
   isCategoryVotingOpen,
   normalizeCategoryStatus,
@@ -103,7 +103,7 @@ async function loadCategoryCards(
       return {
         _id: category._id,
         name: category.name,
-        slug: category.slug,
+        slug: categorySlugForOutput(category),
         sortOrder: category.sortOrder,
         imageUrl: await resolveStorageImageUrl(ctx, category.imageStorageId),
         nomineeCount: nominees.length,
@@ -237,7 +237,7 @@ export const getCategory = query({
       category: {
         _id: category._id,
         name: category.name,
-        slug: category.slug,
+        slug: categorySlugForOutput(category),
         imageUrl: await resolveStorageImageUrl(ctx, category.imageStorageId),
         categoryStatus: normalizeCategoryStatus(category.categoryStatus),
       },
