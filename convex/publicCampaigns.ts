@@ -2,6 +2,11 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { normalizeCampaignLifecycle } from "./lib/campaignLifecycleNormalize";
+import { findCategoryBySlug } from "./lib/categorySlug";
+import {
+  isCategoryVotingOpen,
+  normalizeCategoryStatus,
+} from "./lib/categoryStatus";
 import { resolveStorageImageUrl } from "./lib/images";
 import {
   canViewCampaign,
@@ -11,14 +16,16 @@ import {
   resolveCampaignImageUrl,
 } from "./lib/publicCampaign";
 import { getOrCreateUserId, getUserId } from "./lib/users";
-import { campaignLifecycle } from "./schema";
+import { campaignLifecycle, categoryStatus } from "./schema";
 
 const categoryCard = v.object({
   _id: v.id("campaignCategories"),
   name: v.string(),
+  slug: v.string(),
   imageUrl: v.optional(v.string()),
   nomineeCount: v.number(),
   selectedNomineeId: v.union(v.id("campaignNominees"), v.null()),
+  categoryStatus: categoryStatus,
 });
 
 const publicCampaign = v.object({
@@ -53,7 +60,9 @@ const publicCategory = v.object({
   category: v.object({
     _id: v.id("campaignCategories"),
     name: v.string(),
+    slug: v.string(),
     imageUrl: v.optional(v.string()),
+    categoryStatus: categoryStatus,
   }),
   nominees: v.array(nomineeCard),
   selectedNomineeId: v.union(v.id("campaignNominees"), v.null()),
@@ -94,10 +103,12 @@ async function loadCategoryCards(
       return {
         _id: category._id,
         name: category.name,
+        slug: category.slug,
         sortOrder: category.sortOrder,
         imageUrl: await resolveStorageImageUrl(ctx, category.imageStorageId),
         nomineeCount: nominees.length,
         selectedNomineeId: voteByCategory.get(category._id) ?? null,
+        categoryStatus: normalizeCategoryStatus(category.categoryStatus),
       };
     }),
   );
@@ -163,7 +174,7 @@ export const getBySlug = query({
 export const getCategory = query({
   args: {
     slug: v.string(),
-    categoryId: v.id("campaignCategories"),
+    categorySlug: v.string(),
     workspaceId: v.optional(v.id("workspaces")),
   },
   returns: v.union(publicCategory, v.null()),
@@ -180,8 +191,12 @@ export const getCategory = query({
       return null;
     }
 
-    const category = await ctx.db.get(args.categoryId);
-    if (!category || category.campaignId !== campaign._id) {
+    const category = await findCategoryBySlug(
+      ctx,
+      campaign._id,
+      args.categorySlug,
+    );
+    if (!category) {
       return null;
     }
 
@@ -204,8 +219,11 @@ export const getCategory = query({
       selectedNomineeId = existing?.nomineeId ?? null;
     }
 
-    const votingOpen = isVotingOpen(campaign, now);
-    const canVote = await canVoteOnCampaign(ctx, campaign, userId, now);
+    const categoryAcceptsVotes = isCategoryVotingOpen(category.categoryStatus);
+    const votingOpen = isVotingOpen(campaign, now) && categoryAcceptsVotes;
+    const canVote =
+      (await canVoteOnCampaign(ctx, campaign, userId, now)) &&
+      categoryAcceptsVotes;
 
     return {
       campaign: {
@@ -219,7 +237,9 @@ export const getCategory = query({
       category: {
         _id: category._id,
         name: category.name,
+        slug: category.slug,
         imageUrl: await resolveStorageImageUrl(ctx, category.imageStorageId),
+        categoryStatus: normalizeCategoryStatus(category.categoryStatus),
       },
       nominees: (
         await Promise.all(
@@ -255,14 +275,18 @@ export const castVote = mutation({
       throw new Error("Campaign not found");
     }
 
-    const canVote = await canVoteOnCampaign(ctx, campaign, userId, now);
-    if (!canVote) {
-      throw new Error("Voting is not open for this campaign.");
-    }
-
     const category = await ctx.db.get(args.categoryId);
     if (!category || category.campaignId !== campaign._id) {
       throw new Error("Category not found");
+    }
+
+    if (!isCategoryVotingOpen(category.categoryStatus)) {
+      throw new Error("Voting is closed for this category.");
+    }
+
+    const canVote = await canVoteOnCampaign(ctx, campaign, userId, now);
+    if (!canVote) {
+      throw new Error("Voting is not open for this campaign.");
     }
 
     const nominee = await ctx.db.get(args.nomineeId);
@@ -292,5 +316,104 @@ export const castVote = mutation({
       userId,
     });
     return null;
+  },
+});
+
+const campaignNomineeRow = v.object({
+  _id: v.id("campaignNominees"),
+  name: v.string(),
+  imageUrl: v.optional(v.string()),
+  categoryId: v.id("campaignCategories"),
+  categoryName: v.string(),
+  voteCount: v.number(),
+  sortOrder: v.number(),
+});
+
+const allNomineesPayload = v.object({
+  campaign: v.object({
+    _id: v.id("campaigns"),
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    slug: v.string(),
+  }),
+  nominees: v.array(campaignNomineeRow),
+});
+
+export const listAllNominees = query({
+  args: {
+    slug: v.string(),
+    workspaceId: v.optional(v.id("workspaces")),
+  },
+  returns: v.union(allNomineesPayload, v.null()),
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+    const campaign = await getViewableCampaign(
+      ctx,
+      args.slug,
+      args.workspaceId,
+      userId,
+    );
+    if (!campaign) {
+      return null;
+    }
+
+    const votes = await ctx.db
+      .query("categoryVotes")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", campaign._id))
+      .collect();
+
+    const votesByNominee = new Map<Id<"campaignNominees">, number>();
+    for (const vote of votes) {
+      votesByNominee.set(
+        vote.nomineeId,
+        (votesByNominee.get(vote.nomineeId) ?? 0) + 1,
+      );
+    }
+
+    const categories = await ctx.db
+      .query("campaignCategories")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", campaign._id))
+      .collect();
+
+    const rows = await Promise.all(
+      categories.map(async (category) => {
+        const nominees = await ctx.db
+          .query("campaignNominees")
+          .withIndex("by_category", (q) => q.eq("categoryId", category._id))
+          .collect();
+
+        return Promise.all(
+          nominees.map(async (nominee) => ({
+            _id: nominee._id,
+            name: nominee.name,
+            imageUrl: await resolveStorageImageUrl(ctx, nominee.imageStorageId),
+            categoryId: category._id,
+            categoryName: category.name,
+            voteCount: votesByNominee.get(nominee._id) ?? 0,
+            sortOrder: nominee.sortOrder,
+            categorySortOrder: category.sortOrder,
+          })),
+        );
+      }),
+    );
+
+    const nominees = rows
+      .flat()
+      .sort(
+        (a, b) =>
+          a.categorySortOrder - b.categorySortOrder ||
+          a.sortOrder - b.sortOrder,
+      )
+      .map(({ categorySortOrder: _c, ...row }) => row);
+
+    return {
+      campaign: {
+        _id: campaign._id,
+        workspaceId: campaign.workspaceId,
+        name: campaign.name,
+        slug: campaign.slug,
+      },
+      nominees,
+    };
   },
 });

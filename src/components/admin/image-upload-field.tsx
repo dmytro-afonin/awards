@@ -5,6 +5,7 @@ import { api } from "@cvx/_generated/api";
 import type { Id } from "@cvx/_generated/dataModel";
 import {
   RiCloseLine,
+  RiDeleteBinLine,
   RiImageAddLine,
   RiImageEditLine,
   RiLoader4Line,
@@ -45,6 +46,8 @@ export type ImageUploadFieldProps = {
   aspect: number;
   previewClassName?: string;
   disabled?: boolean;
+  variant?: "default" | "compact";
+  className?: string;
   processingTarget: ImageProcessingTarget;
   /** Called with the processed storage id after crop succeeds. */
   onUpload: (storageId: Id<"_storage">) => Promise<void>;
@@ -58,6 +61,8 @@ export function ImageUploadField({
   aspect,
   previewClassName,
   disabled,
+  variant = "default",
+  className,
   processingTarget,
   onUpload,
   onRemove,
@@ -356,8 +361,216 @@ export function ImageUploadField({
       ? !stagedStorageIdRef.current || !croppedAreaPercent
       : !croppedAreaPixels);
 
+  const cropDialog = (
+    <Dialog.Root
+      open={cropOpen}
+      onOpenChange={(open) => {
+        if (!open && saving) {
+          return;
+        }
+        if (!open) {
+          closeCropDialog();
+        }
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity supports-backdrop-filter:backdrop-blur-sm data-ending-style:opacity-0 data-starting-style:opacity-0" />
+        <Dialog.Popup
+          className={cn(
+            "fixed top-1/2 left-1/2 z-50 flex max-h-[min(90vh,40rem)] w-[min(calc(100%-2rem),28rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl",
+            "transition duration-200 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0",
+          )}
+        >
+          <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+            <div className="flex flex-col gap-1">
+              <Dialog.Title className="font-heading text-base font-medium">
+                Crop photo
+              </Dialog.Title>
+              <Dialog.Description className="text-sm text-muted-foreground">
+                Drag to frame your photo, then save.
+              </Dialog.Description>
+            </div>
+            <Dialog.Close
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="shrink-0"
+                  disabled={saving}
+                />
+              }
+            >
+              <RiCloseLine className="size-4" />
+              <span className="sr-only">Close</span>
+            </Dialog.Close>
+          </div>
+
+          <div
+            className="relative mx-auto w-full shrink-0 bg-muted"
+            style={{
+              aspectRatio: aspect,
+              height: "min(50vh, 20rem)",
+            }}
+          >
+            {imageSrc && previewSynced ? (
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={aspect}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            ) : (
+              <div className="flex size-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                <RiLoader4Line
+                  className="size-8 animate-spin opacity-70"
+                  aria-hidden
+                />
+                <span className="text-sm">Preparing preview…</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2 px-5 py-4">
+            <label
+              htmlFor={`${inputId}-zoom`}
+              className="text-xs font-medium text-muted-foreground"
+            >
+              Zoom
+            </label>
+            <input
+              id={`${inputId}-zoom`}
+              type="range"
+              min={1}
+              max={3}
+              step={0.05}
+              value={zoom}
+              disabled={!previewSynced || saving}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+          </div>
+
+          {cropError ? (
+            <p className="px-5 pb-2 text-sm text-destructive" role="alert">
+              {cropError}
+            </p>
+          ) : null}
+
+          <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving}
+              onClick={closeCropDialog}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={saveDisabled}
+              onClick={() => void handleSaveCrop()}
+            >
+              {saving ? "Processing…" : uploading ? "Uploading…" : "Save photo"}
+            </Button>
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+
+  if (variant === "compact") {
+    return (
+      <>
+        <div className={cn("group/photo relative", className)}>
+          <input
+            ref={fileInputRef}
+            id={inputId}
+            type="file"
+            accept={FILE_ACCEPT}
+            className="sr-only"
+            disabled={disabled || saving}
+            onChange={handleFileChange}
+          />
+          <div
+            className={cn(
+              "relative overflow-hidden rounded-lg border border-border bg-muted/40",
+              previewClassName,
+            )}
+            style={{ aspectRatio: aspect }}
+          >
+            {imageUrl ? (
+              <div
+                className="size-full bg-cover bg-center"
+                style={{ backgroundImage: `url(${imageUrl})` }}
+                role="img"
+                aria-label={label}
+              />
+            ) : (
+              <button
+                type="button"
+                className="flex size-full flex-col items-center justify-center gap-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                disabled={disabled || saving}
+                aria-label={`Add ${label.toLowerCase()}`}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <RiImageAddLine className="size-6 opacity-60" aria-hidden />
+                <span className="text-[10px] font-medium uppercase tracking-wide">
+                  Add photo
+                </span>
+              </button>
+            )}
+            {imageUrl && !disabled ? (
+              <div className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/55 opacity-0 transition-opacity group-hover/photo:opacity-100 group-focus-within/photo:opacity-100">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon-sm"
+                  className="size-8"
+                  disabled={saving}
+                  aria-label={`Change ${label.toLowerCase()}`}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <RiImageEditLine className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon-sm"
+                  className="size-8"
+                  disabled={saving}
+                  aria-label={`Remove ${label.toLowerCase()}`}
+                  onClick={() => void handleRemove()}
+                >
+                  <RiDeleteBinLine className="size-4" />
+                </Button>
+              </div>
+            ) : null}
+            {saving ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                <RiLoader4Line
+                  className="size-5 animate-spin text-muted-foreground"
+                  aria-hidden
+                />
+              </div>
+            ) : null}
+          </div>
+          {fieldError ? (
+            <p className="mt-1 text-xs text-destructive" role="alert">
+              {fieldError}
+            </p>
+          ) : null}
+        </div>
+        {cropDialog}
+      </>
+    );
+  }
+
   return (
-    <Field>
+    <Field className={className}>
       <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
       <FieldContent className="gap-3">
         {description ? (
@@ -434,128 +647,7 @@ export function ImageUploadField({
         ) : null}
       </FieldContent>
 
-      <Dialog.Root
-        open={cropOpen}
-        onOpenChange={(open) => {
-          if (!open && saving) {
-            return;
-          }
-          if (!open) {
-            closeCropDialog();
-          }
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity supports-backdrop-filter:backdrop-blur-sm data-ending-style:opacity-0 data-starting-style:opacity-0" />
-          <Dialog.Popup
-            className={cn(
-              "fixed top-1/2 left-1/2 z-50 flex max-h-[min(90vh,40rem)] w-[min(calc(100%-2rem),28rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl",
-              "transition duration-200 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0",
-            )}
-          >
-            <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
-              <div className="flex flex-col gap-1">
-                <Dialog.Title className="font-heading text-base font-medium">
-                  Crop photo
-                </Dialog.Title>
-                <Dialog.Description className="text-sm text-muted-foreground">
-                  Drag to frame your photo, then save.
-                </Dialog.Description>
-              </div>
-              <Dialog.Close
-                render={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="shrink-0"
-                    disabled={saving}
-                  />
-                }
-              >
-                <RiCloseLine className="size-4" />
-                <span className="sr-only">Close</span>
-              </Dialog.Close>
-            </div>
-
-            <div
-              className="relative mx-auto w-full shrink-0 bg-muted"
-              style={{
-                aspectRatio: aspect,
-                height: "min(50vh, 20rem)",
-              }}
-            >
-              {imageSrc && previewSynced ? (
-                <Cropper
-                  image={imageSrc}
-                  crop={crop}
-                  zoom={zoom}
-                  aspect={aspect}
-                  onCropChange={setCrop}
-                  onZoomChange={setZoom}
-                  onCropComplete={onCropComplete}
-                />
-              ) : (
-                <div className="flex size-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                  <RiLoader4Line
-                    className="size-8 animate-spin opacity-70"
-                    aria-hidden
-                  />
-                  <span className="text-sm">Preparing preview…</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2 px-5 py-4">
-              <label
-                htmlFor={`${inputId}-zoom`}
-                className="text-xs font-medium text-muted-foreground"
-              >
-                Zoom
-              </label>
-              <input
-                id={`${inputId}-zoom`}
-                type="range"
-                min={1}
-                max={3}
-                step={0.05}
-                value={zoom}
-                disabled={!previewSynced || saving}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                className="w-full accent-primary"
-              />
-            </div>
-
-            {cropError ? (
-              <p className="px-5 pb-2 text-sm text-destructive" role="alert">
-                {cropError}
-              </p>
-            ) : null}
-
-            <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={saving}
-                onClick={closeCropDialog}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                disabled={saveDisabled}
-                onClick={() => void handleSaveCrop()}
-              >
-                {saving
-                  ? "Processing…"
-                  : uploading
-                    ? "Uploading…"
-                    : "Save photo"}
-              </Button>
-            </div>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
+      {cropDialog}
     </Field>
   );
 }

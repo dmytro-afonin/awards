@@ -18,6 +18,8 @@ import type * as lib_campaignLifecycleRules from "../lib/campaignLifecycleRules.
 import type * as lib_campaignReady from "../lib/campaignReady.js";
 import type * as lib_campaignSlug from "../lib/campaignSlug.js";
 import type * as lib_categories from "../lib/categories.js";
+import type * as lib_categorySlug from "../lib/categorySlug.js";
+import type * as lib_categoryStatus from "../lib/categoryStatus.js";
 import type * as lib_categoryWinner from "../lib/categoryWinner.js";
 import type * as lib_imageTargets from "../lib/imageTargets.js";
 import type * as lib_images from "../lib/images.js";
@@ -47,6 +49,8 @@ declare const fullApi: ApiFromModules<{
   "lib/campaignReady": typeof lib_campaignReady;
   "lib/campaignSlug": typeof lib_campaignSlug;
   "lib/categories": typeof lib_categories;
+  "lib/categorySlug": typeof lib_categorySlug;
+  "lib/categoryStatus": typeof lib_categoryStatus;
   "lib/categoryWinner": typeof lib_categoryWinner;
   "lib/imageTargets": typeof lib_imageTargets;
   "lib/images": typeof lib_images;

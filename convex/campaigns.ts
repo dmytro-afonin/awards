@@ -20,11 +20,12 @@ import {
   assertCanGoLiveAndVote,
   assertCanLaunchCampaign,
   assertCanOpenVoting,
-  isCampaignContentEditable,
   isCampaignMetadataEditable,
 } from "./lib/campaignLifecycleRules";
 import { syncCampaignContentCounts } from "./lib/campaignReady";
 import { resolveUniqueSlug } from "./lib/campaignSlug";
+import { resolveUniqueCategorySlug } from "./lib/categorySlug";
+import { computeAutoWinnerNomineeId } from "./lib/categoryWinner";
 import {
   assertImageStorageObject,
   deleteStorageFile,
@@ -155,9 +156,11 @@ async function migrateLegacyCategories(
   for (let i = 0; i < legacy.length; i++) {
     const name = legacy[i]?.trim();
     if (!name) continue;
+    const slug = await resolveUniqueCategorySlug(ctx, doc._id, name);
     await ctx.db.insert("campaignCategories", {
       campaignId: doc._id,
       name,
+      slug,
       sortOrder: i,
     });
   }
@@ -304,7 +307,7 @@ export const update = mutation({
     }
 
     if (!isCampaignMetadataEditable(refreshed.lifecycle)) {
-      throw new Error("Only draft campaigns can be edited.");
+      throw new Error("Archived campaigns cannot be edited.");
     }
 
     const name = args.name.trim();
@@ -344,10 +347,8 @@ export const setImage = mutation({
     const doc = await ctx.db.get(args.campaignId);
     if (!doc) throw new Error("Campaign not found");
     await requireAdminMembership(ctx, doc.workspaceId);
-    if (!isCampaignContentEditable(doc.lifecycle)) {
-      throw new Error(
-        "Revert this campaign to draft before changing the cover image.",
-      );
+    if (!isCampaignMetadataEditable(doc.lifecycle)) {
+      throw new Error("Archived campaigns cannot be edited.");
     }
     await assertImageStorageObject(ctx, args.storageId);
 
@@ -370,10 +371,8 @@ export const clearImage = mutation({
     const doc = await ctx.db.get(args.campaignId);
     if (!doc) throw new Error("Campaign not found");
     await requireAdminMembership(ctx, doc.workspaceId);
-    if (!isCampaignContentEditable(doc.lifecycle)) {
-      throw new Error(
-        "Revert this campaign to draft before changing the cover image.",
-      );
+    if (!isCampaignMetadataEditable(doc.lifecycle)) {
+      throw new Error("Archived campaigns cannot be edited.");
     }
     await ctx.db.patch(args.campaignId, {
       imageStorageId: undefined,
@@ -465,6 +464,27 @@ export const closeVoting = mutation({
     await requireAdminMembership(ctx, raw.workspaceId);
     const doc = await patchCampaignLifecycleIfLegacy(ctx, raw);
     assertCanCloseVoting(doc);
+
+    const categories = await ctx.db
+      .query("campaignCategories")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
+
+    for (const category of categories) {
+      const status = category.categoryStatus ?? "open";
+      if (status !== "open") continue;
+      const winnerNomineeId = await computeAutoWinnerNomineeId(
+        ctx,
+        category._id,
+        args.campaignId,
+      );
+      await ctx.db.patch(category._id, {
+        categoryStatus: "voting_closed",
+        winnerNomineeId,
+        winnerSource: winnerNomineeId ? "auto" : undefined,
+      });
+    }
+
     await ctx.db.patch(args.campaignId, { lifecycle: "vote_ended" });
     return null;
   },

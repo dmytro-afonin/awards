@@ -1,26 +1,13 @@
 "use client";
 
-import type { Id } from "@cvx/_generated/dataModel";
-import {
-  getLayoutPages,
-  PublicLayoutChrome,
-} from "@/components/public/layouts/registry";
-import { usePublicLayout } from "@/components/public/layouts/use-public-layout";
+import { StoryCategoryPage } from "@/components/public/layouts/story";
 
 export function PublicCategoryPage({
   slug,
-  categoryId,
+  categorySlug,
 }: {
   slug: string;
-  categoryId: Id<"campaignCategories">;
+  categorySlug: string;
 }) {
-  const layout = usePublicLayout();
-  const { Category } = getLayoutPages(layout);
-
-  return (
-    <>
-      <Category slug={slug} categoryId={categoryId} />
-      <PublicLayoutChrome />
-    </>
-  );
+  return <StoryCategoryPage slug={slug} categorySlug={categorySlug} />;
 }

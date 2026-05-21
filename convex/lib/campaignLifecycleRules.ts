@@ -17,13 +17,13 @@ export function assertCanDeleteCampaign(doc: Doc<"campaigns">): void {
 export function isCampaignContentEditable(
   lifecycle: Doc<"campaigns">["lifecycle"],
 ): boolean {
-  return normalizeCampaignLifecycle(lifecycle as string) === "draft";
+  return normalizeCampaignLifecycle(lifecycle as string) !== "archived";
 }
 
 export function isCampaignMetadataEditable(
   lifecycle: Doc<"campaigns">["lifecycle"],
 ): boolean {
-  return normalizeCampaignLifecycle(lifecycle as string) === "draft";
+  return normalizeCampaignLifecycle(lifecycle as string) !== "archived";
 }
 
 async function assertLaunchReady(
@@ -101,8 +101,22 @@ export function assertCanArchiveCampaign(doc: Doc<"campaigns">): void {
   }
 }
 
-export function assertCanFinalizeCategory(doc: Doc<"campaigns">): void {
-  if (lifecycleState(doc) !== "vote_ended") {
-    throw new Error("Categories can only be finalized after voting ends.");
+export function assertCanRunCategoryBallot(doc: Doc<"campaigns">): void {
+  const state = lifecycleState(doc);
+  if (state !== "vote_live" && state !== "vote_ended") {
+    throw new Error(
+      "Category voting can only be managed while the campaign is live or after voting ends.",
+    );
   }
+}
+
+export function assertCanRevealAllCategoryWinners(doc: Doc<"campaigns">): void {
+  if (lifecycleState(doc) !== "vote_ended") {
+    throw new Error("End campaign voting before revealing all winners.");
+  }
+}
+
+/** @deprecated Use assertCanRunCategoryBallot */
+export function assertCanFinalizeCategory(doc: Doc<"campaigns">): void {
+  assertCanRunCategoryBallot(doc);
 }

@@ -64,11 +64,22 @@ export function canArchiveCampaign(lifecycle: string): boolean {
 }
 
 export function canEditCampaignMetadata(lifecycle: string): boolean {
-  return normalizeCampaignLifecycle(lifecycle) === "draft";
+  return normalizeCampaignLifecycle(lifecycle) !== "archived";
+}
+
+/** Campaign is past draft — edits may affect voters and public links. */
+export function isLiveCampaignLifecycle(lifecycle: string): boolean {
+  const state = normalizeCampaignLifecycle(lifecycle);
+  return (
+    state === "launched" ||
+    state === "vote_live" ||
+    state === "vote_ended" ||
+    state === "finished"
+  );
 }
 
 export function canManageCampaignContent(lifecycle: string): boolean {
-  return normalizeCampaignLifecycle(lifecycle) === "draft";
+  return normalizeCampaignLifecycle(lifecycle) !== "archived";
 }
 
 export function canViewPublicCampaign(lifecycle: string): boolean {

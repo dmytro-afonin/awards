@@ -21,7 +21,11 @@ export const campaignLifecycle = v.union(
   v.literal("archived"),
 );
 
-export const categoryStatus = v.union(v.literal("open"), v.literal("finished"));
+export const categoryStatus = v.union(
+  v.literal("open"),
+  v.literal("voting_closed"),
+  v.literal("finished"),
+);
 
 export const winnerSource = v.union(v.literal("auto"), v.literal("override"));
 
@@ -70,12 +74,15 @@ export default defineSchema({
   campaignCategories: defineTable({
     campaignId: v.id("campaigns"),
     name: v.string(),
+    slug: v.string(),
     sortOrder: v.number(),
     imageStorageId: v.optional(v.id("_storage")),
     categoryStatus: v.optional(categoryStatus),
     winnerNomineeId: v.optional(v.id("campaignNominees")),
     winnerSource: v.optional(winnerSource),
-  }).index("by_campaign", ["campaignId"]),
+  })
+    .index("by_campaign", ["campaignId"])
+    .index("by_campaign_and_slug", ["campaignId", "slug"]),
 
   campaignNominees: defineTable({
     categoryId: v.id("campaignCategories"),
