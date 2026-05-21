@@ -12,13 +12,15 @@
     "typecheck": "tsc --noEmit",
     "convex:dev": "convex dev",
     "convex:codegen": "convex codegen",
-    "convex:backfill-category-slugs": "convex run migrations:backfillCategorySlugs",
-    "convex:backfill-category-slugs:prod": "convex run migrations:backfillCategorySlugs --prod",
+    "convex:migrate": "convex run migrations:runAll",
+    "convex:migrate:prod": "convex run migrations:runAll --prod",
+    "convex:migrate:status": "convex run --component migrations lib:getStatus",
     "prepare": "husky"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
     "@clerk/nextjs": "^7.3.4",
+    "@convex-dev/migrations": "^0.3.4",
     "@remixicon/react": "^4.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

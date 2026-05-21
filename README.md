@@ -40,7 +40,9 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 | `bun run typecheck` | TypeScript (`tsc --noEmit`) |
 | `bun run convex:codegen` | Regenerate `convex/_generated` types |
 | `bun run deploy:production` | Vercel/CI: Convex deploy + Next build (no data migrations) |
-| `bun run convex:backfill-category-slugs:prod` | One-time slug backfill on prod (run locally after deploy; requires `convex login`) |
+| `bun run convex:migrate` | Run pending Convex data migrations (dev) |
+| `bun run convex:migrate:prod` | Run pending migrations on prod (`CONVEX_DEPLOY_KEY=` if needed) |
+| `bun run convex:migrate:status` | Show migration component status |
 
 ## Deploy (Vercel)
 
@@ -50,11 +52,9 @@ Summary:
 
 1. Set Clerk + Convex env vars on Vercel (including `CONVEX_DEPLOY_KEY` for prod deploys).
 2. Vercel uses `bun run deploy:production` from `vercel.json` — Convex deploy + Next.js build only.
-3. After the first successful prod deploy, run the slug backfill **locally** (deploy keys cannot run mutations):
+3. After deploy, run data migrations **locally** when needed (deploy keys cannot run mutations):
 
    ```bash
-   bun run convex:backfill-category-slugs:prod
-   npx convex run migrations:categorySlugMigrationStatus --prod
+   CONVEX_DEPLOY_KEY= bun run convex:migrate:prod
+   bun run convex:migrate:status
    ```
-
-   When `missingSlugCount` is `0`, you can optionally narrow `campaignCategories.slug` to required in `convex/schema.ts`.

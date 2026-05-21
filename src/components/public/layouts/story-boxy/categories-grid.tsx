@@ -1,5 +1,6 @@
 "use client";
 
+import { RiTrophyLine } from "@remixicon/react";
 import Link from "next/link";
 import type { StoryCategoryGridProps } from "@/components/public/layouts/story-boxy/category-types";
 import {
@@ -58,6 +59,12 @@ export function StoryCategoriesGrid({ campaign }: StoryCategoryGridProps) {
                 <p className="mt-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
                   {categoryStatusLabel(cat.categoryStatus)}
                 </p>
+                {cat.winner ? (
+                  <p className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
+                    <RiTrophyLine className="size-3" aria-hidden />
+                    {cat.winner.name}
+                  </p>
+                ) : null}
                 {cat.selectedNomineeId ? (
                   <VotedBadge className="mt-1.5" />
                 ) : null}

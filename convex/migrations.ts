@@ -1,43 +1,58 @@
+import { Migrations } from "@convex-dev/migrations";
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { components, internal } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
+import { internalQuery } from "./_generated/server";
+import { normalizeCampaignLifecycle } from "./lib/campaignLifecycleNormalize";
 import {
-  backfillMissingCategorySlugs,
   countCategoriesMissingSlug,
+  resolveUniqueCategorySlug,
 } from "./lib/categorySlug";
 
-/** One-time: migrate lifecycle enum to draft/launched/vote_live/vote_ended/finished/archived. */
-export const migrateToNewLifecycle = internalMutation({
-  args: {},
-  returns: v.number(),
-  handler: async (ctx) => {
-    const campaigns = await ctx.db.query("campaigns").collect();
-    let updated = 0;
-    for (const campaign of campaigns) {
-      const raw = campaign.lifecycle as string;
-      let next: typeof campaign.lifecycle | null = null;
+export const migrations = new Migrations<DataModel>(components.migrations);
 
-      if (raw === "ready") next = "draft";
-      else if (raw === "deleted") next = "archived";
-      else if (raw === "started" || raw === "live") next = "launched";
-      else if (raw === "launched") next = "vote_live";
-
-      if (next && next !== campaign.lifecycle) {
-        await ctx.db.patch(campaign._id, { lifecycle: next });
-        updated += 1;
-      }
+/** Backfill slug on categories created before the slug field existed. Idempotent. */
+export const backfillCategorySlugs = migrations.define({
+  table: "campaignCategories",
+  migrateOne: async (ctx, category) => {
+    if (category.slug) {
+      return;
     }
-    return updated;
+    const slug = await resolveUniqueCategorySlug(
+      ctx,
+      category.campaignId,
+      category.name,
+    );
+    await ctx.db.patch(category._id, { slug });
   },
 });
 
-/** Backfill slug on campaignCategories rows created before the slug field existed. Idempotent. */
-export const backfillCategorySlugs = internalMutation({
-  args: {},
-  returns: v.number(),
-  handler: async (ctx) => backfillMissingCategorySlugs(ctx),
+/** One-time: migrate legacy lifecycle enum values. Idempotent. */
+export const migrateToNewLifecycle = migrations.define({
+  table: "campaigns",
+  migrateOne: async (ctx, campaign) => {
+    const raw = campaign.lifecycle as string;
+    let next: typeof campaign.lifecycle | null = null;
+
+    if (raw === "ready") next = "draft";
+    else if (raw === "deleted") next = "archived";
+    else if (raw === "started" || raw === "live") next = "launched";
+    else if (raw === "launched") next = "vote_live";
+
+    if (next && next !== campaign.lifecycle) {
+      await ctx.db.patch(campaign._id, { lifecycle: next });
+    }
+  },
 });
 
-/** How many categories still need slug backfill (0 = safe to narrow schema to required slug). */
+export const runAll = migrations.runner([
+  internal.migrations.backfillCategorySlugs,
+  internal.migrations.migrateToNewLifecycle,
+]);
+
+export const run = migrations.runner();
+
+/** How many categories still need slug backfill (0 = slug is required in schema). */
 export const categorySlugMigrationStatus = internalQuery({
   args: {},
   returns: v.object({
