@@ -7,12 +7,17 @@ import type { FunctionReturnType } from "convex/server";
 import { CategoryBallotControls } from "@/components/admin/campaign-detail/category-ballot-controls";
 import { CategoryStatusIndicator } from "@/components/admin/campaign-detail/category-status-indicator";
 import { HoverShareViewActions } from "@/components/admin/campaign-detail/hover-share-view-actions";
+import { ManageCategoriesButton } from "@/components/admin/campaign-detail/manage-categories-button";
 import { Button } from "@/components/ui/button";
-import { normalizeCampaignLifecycle } from "@/lib/campaign-lifecycle";
+import {
+  canManageCampaignContent,
+  normalizeCampaignLifecycle,
+} from "@/lib/campaign-lifecycle";
 import {
   canAdvanceFromCategory,
   categoryStatusSurface,
   currentRunwayCategory,
+  isCategoryRunLifecycle,
   nextCategoryInOrder,
 } from "@/lib/category-run";
 import { publicCategoryPath } from "@/lib/public-campaign-url";
@@ -55,7 +60,7 @@ export function CategoriesOverviewList({
   if (categories.length === 0) {
     return (
       <p className={cn("text-sm text-muted-foreground", className)}>
-        No categories yet. Add categories while the campaign is in draft.
+        No categories yet.
       </p>
     );
   }
@@ -80,6 +85,7 @@ export function CategoriesOverviewList({
           slug={slug}
           workspaceId={workspaceId}
           showPublicLinks={showPublicLinks && Boolean(workspaceId)}
+          campaignLifecycle={campaignLifecycle}
         />
       ))}
     </ul>
@@ -242,6 +248,7 @@ function CategoryOverviewItem({
   slug,
   workspaceId,
   showPublicLinks,
+  campaignLifecycle,
 }: {
   category: CategoryOverview;
   categories: CategoryOverview[];
@@ -252,9 +259,11 @@ function CategoryOverviewItem({
   slug: string;
   workspaceId?: Id<"workspaces">;
   showPublicLinks: boolean;
+  campaignLifecycle: string;
 }) {
   const winnerId = category.winnerNomineeId;
   const isGrid = nomineeLayout === "grid";
+  const runActive = isCategoryRunLifecycle(campaignLifecycle);
   const votesRevealed = category.categoryStatus === "finished";
   const categoryPublicHref =
     workspaceId && showPublicLinks
@@ -268,9 +277,11 @@ function CategoryOverviewItem({
       id={`admin-category-${category._id}`}
       className={cn(
         "group scroll-mt-28 overflow-hidden rounded-xl border shadow-sm transition-colors",
-        categoryStatusSurface(category.categoryStatus, {
-          runwayFocus: isRunwayFocus,
-        }),
+        runActive
+          ? categoryStatusSurface(category.categoryStatus, {
+              runwayFocus: isRunwayFocus,
+            })
+          : "border-border bg-card",
         nomineeLayout === "scroll" && "p-4 md:p-5",
         nomineeLayout === "grid-compact" && "p-3",
         isGrid && "p-0",
@@ -312,6 +323,7 @@ function CategoryOverviewItem({
           <CategoryStatusIndicator
             status={category.categoryStatus}
             size="compact"
+            campaignLifecycle={campaignLifecycle}
           />
         </div>
         {showPublicLinks && categoryPublicHref ? (
@@ -418,18 +430,29 @@ export function ReadinessChecklist({
   canLaunch,
   categoryCount,
   categories,
+  campaignId,
+  campaignName,
+  lifecycle,
 }: {
   canLaunch: boolean;
   categoryCount: number;
   categories: { name: string; nomineeCount: number }[];
+  campaignId: Id<"campaigns">;
+  campaignName: string;
+  lifecycle: string;
 }) {
+  const nextIncompleteCategory = categories.find(
+    (category) => category.nomineeCount < 2,
+  );
+  const showManageCategories = canManageCampaignContent(lifecycle);
+
   return (
     <div className="space-y-3 text-sm">
       <div className="flex items-start gap-2">
         {categoryCount > 0 ? (
-          <RiStarFill className="mt-0.5 size-4 text-emerald-600" />
+          <RiStarFill className="mt-0.5 size-4 shrink-0 text-emerald-600" />
         ) : (
-          <span className="mt-1 size-4 rounded-full border-2 border-muted-foreground/40" />
+          <span className="mt-1 size-4 shrink-0 rounded-full border-2 border-muted-foreground/40" />
         )}
         <div>
           <p className="font-medium">At least one category</p>
@@ -441,9 +464,9 @@ export function ReadinessChecklist({
       {categories.map((category) => (
         <div key={category.name} className="flex items-start gap-2 pl-6">
           {category.nomineeCount >= 2 ? (
-            <RiStarFill className="mt-0.5 size-4 text-emerald-600" />
+            <RiStarFill className="mt-0.5 size-4 shrink-0 text-emerald-600" />
           ) : (
-            <span className="mt-1 size-4 rounded-full border-2 border-muted-foreground/40" />
+            <span className="mt-1 size-4 shrink-0 rounded-full border-2 border-muted-foreground/40" />
           )}
           <div>
             <p className="font-medium">{category.name}</p>
@@ -453,16 +476,44 @@ export function ReadinessChecklist({
           </div>
         </div>
       ))}
-      <p
-        className={cn(
-          "rounded-md px-3 py-2 text-xs font-medium",
-          canLaunch
-            ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
-            : "bg-muted text-muted-foreground",
-        )}
-      >
-        {canLaunch ? "Ready to launch" : "Complete setup before launching"}
-      </p>
+      {!canLaunch ? (
+        <div className="rounded-md bg-muted px-3 py-3">
+          <p className="text-xs font-medium text-muted-foreground">
+            {categoryCount === 0
+              ? "Add categories and at least two nominees in each before launching."
+              : nextIncompleteCategory
+                ? `Add nominees to "${nextIncompleteCategory.name}" to continue setup.`
+                : "Complete setup before launching."}
+          </p>
+          {showManageCategories ? (
+            <ManageCategoriesButton
+              campaignId={campaignId}
+              campaignName={campaignName}
+              lifecycle={lifecycle}
+              presentation="button"
+              size="sm"
+              className="mt-3"
+            />
+          ) : null}
+        </div>
+      ) : (
+        <div className="rounded-md bg-emerald-500/10 px-3 py-3">
+          <p className="text-xs font-medium text-emerald-800 dark:text-emerald-200">
+            Ready to launch
+          </p>
+          {showManageCategories ? (
+            <ManageCategoriesButton
+              campaignId={campaignId}
+              campaignName={campaignName}
+              lifecycle={lifecycle}
+              presentation="button"
+              size="sm"
+              variant="outline"
+              className="mt-3"
+            />
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

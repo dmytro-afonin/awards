@@ -3,6 +3,10 @@ import { v } from "convex/values";
 
 export const imageProcessingTargetValidator = v.union(
   v.object({
+    type: v.literal("workspace"),
+    workspaceId: v.id("workspaces"),
+  }),
+  v.object({
     type: v.literal("campaign"),
     campaignId: v.id("campaigns"),
   }),

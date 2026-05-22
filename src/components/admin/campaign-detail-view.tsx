@@ -109,13 +109,16 @@ export function CampaignDetailView({
           />
         </section>
 
-        {state === "draft" && !readiness.canLaunch ? (
+        {state === "draft" ? (
           <section className="rounded-xl border border-dashed border-border p-4">
             <h2 className="mb-3 text-sm font-medium">Launch checklist</h2>
             <ReadinessChecklist
               canLaunch={readiness.canLaunch}
               categoryCount={readiness.categoryCount}
               categories={readiness.categories}
+              campaignId={campaignId}
+              campaignName={campaign.name}
+              lifecycle={campaign.lifecycle}
             />
           </section>
         ) : null}

@@ -7,6 +7,7 @@ import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
+import { useConfirm } from "@/components/confirm-dialog-provider";
 import { Button } from "@/components/ui/button";
 import {
   type CategoryOverview,
@@ -22,21 +23,24 @@ export function CampaignRunSidebarActions({
 }) {
   const router = useRouter();
   const { showShareMessage } = useAdmin();
+  const confirm = useConfirm();
   const revealAll = useMutation(
     api.campaignCategories.revealAllCategoryWinners,
   );
 
   const awaitingReveal = countCategoriesByStatus(categories, "voting_closed");
 
-  const confirmRevealAll = useCallback(() => {
+  const confirmRevealAll = useCallback(async () => {
     if (awaitingReveal === 0) return false;
-    return window.confirm(
-      `Show winners for all ${awaitingReveal} categories with closed voting?`,
-    );
-  }, [awaitingReveal]);
+    return confirm({
+      title: "Show all winners?",
+      description: `Show winners for all ${awaitingReveal} categories with closed voting?`,
+      confirmLabel: "Show winners",
+    });
+  }, [awaitingReveal, confirm]);
 
   const handleRevealAll = useCallback(async () => {
-    if (!confirmRevealAll()) return;
+    if (!(await confirmRevealAll())) return;
     try {
       const count = await revealAll({ campaignId });
       showShareMessage(

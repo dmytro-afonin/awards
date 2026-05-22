@@ -180,11 +180,11 @@ export function CampaignCategoriesEditor({
               >
                 <div className="flex flex-wrap items-start gap-4">
                   <ImageUploadField
-                    variant="compact"
+                    layout="inline"
                     label="Category photo"
                     imageUrl={category.imageUrl}
                     aspect={1}
-                    previewClassName="w-24 shrink-0 sm:w-28"
+                    previewClassName="w-20 shrink-0 sm:w-24"
                     disabled={disabled || busy}
                     processingTarget={{
                       type: "category",
@@ -242,11 +242,11 @@ export function CampaignCategoriesEditor({
                     <li key={nominee._id}>
                       <article className="overflow-hidden rounded-lg border border-border bg-card">
                         <ImageUploadField
-                          variant="compact"
+                          layout="inline"
                           label={`${nominee.name} photo`}
                           imageUrl={nominee.imageUrl}
                           aspect={1}
-                          previewClassName="w-full !rounded-none border-0 border-b border-border"
+                          previewClassName="w-full !rounded-none !border-0 border-b border-border"
                           disabled={disabled || busy}
                           processingTarget={{
                             type: "nominee",

@@ -84,9 +84,9 @@ export async function assertCanFinishCampaign(
 
   for (const category of categories) {
     const status = category.categoryStatus ?? "open";
-    if (status !== "finished" || !category.winnerNomineeId) {
+    if (status === "open") {
       throw new Error(
-        `Finalize every category before finishing the campaign (${category.name} is not finished).`,
+        "Close voting on all categories before finishing the campaign.",
       );
     }
   }

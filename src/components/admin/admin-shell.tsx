@@ -8,6 +8,7 @@ import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminTopBar } from "@/components/admin/admin-top-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { buildSignInPageHref } from "@/lib/auth-redirect";
 
 function AdminShellInner({ children }: { children?: ReactNode }) {
   return (
@@ -32,7 +33,8 @@ function AdminAuthGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      router.replace("/sign-in");
+      const returnPath = `${window.location.pathname}${window.location.search}`;
+      router.replace(buildSignInPageHref(returnPath));
     }
   }, [isLoaded, isSignedIn, router]);
 

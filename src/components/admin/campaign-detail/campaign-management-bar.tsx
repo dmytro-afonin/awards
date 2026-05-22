@@ -6,6 +6,7 @@ import {
   RiExternalLinkLine,
   RiShareLine,
   RiSkipDownLine,
+  RiStopCircleLine,
   RiTrophyLine,
 } from "@remixicon/react";
 import { useMutation } from "convex/react";
@@ -20,13 +21,16 @@ import {
   ToolbarActionButton,
   ToolbarDivider,
 } from "@/components/admin/campaign-detail/toolbar-icon-button";
+import { useConfirm } from "@/components/confirm-dialog-provider";
 import {
+  canCloseVoting,
   canViewPublicCampaign,
-  normalizeCampaignLifecycle,
 } from "@/lib/campaign-lifecycle";
 import {
   countCategoriesByStatus,
   currentRunwayCategory,
+  hasUnrevealedCategoryWinners,
+  isCategoryRunLifecycle,
 } from "@/lib/category-run";
 import { publicCampaignPath } from "@/lib/public-campaign-url";
 import { cn } from "@/lib/utils";
@@ -56,17 +60,27 @@ export function CampaignManagementBar({
 }: CampaignManagementBarProps) {
   const router = useRouter();
   const { showShareMessage } = useAdmin();
+  const confirm = useConfirm();
   const revealAll = useMutation(
     api.campaignCategories.revealAllCategoryWinners,
   );
+  const closeVoting = useMutation(api.campaigns.closeVoting);
+  const closeAllCategoryVoting = useMutation(
+    api.campaignCategories.closeAllCategoryVoting,
+  );
 
-  const state = normalizeCampaignLifecycle(lifecycle);
   const runwayCategory = currentRunwayCategory(categories);
+  const votingOpenCount = countCategoriesByStatus(categories, "open");
   const awaitingReveal = countCategoriesByStatus(categories, "voting_closed");
+  const hasUnrevealedWinners = hasUnrevealedCategoryWinners(categories);
   const publicHref = publicCampaignPath(slug, workspaceId);
   const showPublic = canViewPublicCampaign(lifecycle);
-  const showJump = showRunTools && state === "vote_live";
-  const showRevealAll = showRunTools && state === "vote_ended";
+  const showJump = showRunTools && hasUnrevealedWinners;
+  const showRevealAll = showRunTools && hasUnrevealedWinners;
+  const showCloseVotes =
+    isCategoryRunLifecycle(lifecycle) && votingOpenCount > 0;
+  const revealAllDisabled = awaitingReveal === 0;
+  const toolbarRunActionClassName = "size-8 shrink-0";
 
   const handleJumpToCurrent = useCallback(() => {
     if (!runwayCategory) return;
@@ -78,9 +92,11 @@ export function CampaignManagementBar({
   const handleRevealAll = useCallback(async () => {
     if (awaitingReveal === 0) return;
     if (
-      !window.confirm(
-        `Show winners for all ${awaitingReveal} categories with closed voting?`,
-      )
+      !(await confirm({
+        title: "Show all winners?",
+        description: `Show winners for all ${awaitingReveal} categories with closed voting?`,
+        confirmLabel: "Show winners",
+      }))
     ) {
       return;
     }
@@ -98,7 +114,59 @@ export function CampaignManagementBar({
         "error",
       );
     }
-  }, [awaitingReveal, campaignId, revealAll, router, showShareMessage]);
+  }, [
+    awaitingReveal,
+    campaignId,
+    confirm,
+    revealAll,
+    router,
+    showShareMessage,
+  ]);
+
+  const handleCloseVotes = useCallback(async () => {
+    if (votingOpenCount === 0) return;
+    if (
+      !(await confirm({
+        title: "Close voting?",
+        description:
+          votingOpenCount === 1
+            ? `Close voting for the open category on "${campaignName}"? No more votes will be accepted.`
+            : `Close voting for all ${votingOpenCount} open categories on "${campaignName}"? No more votes will be accepted.`,
+        confirmLabel: "Close voting",
+      }))
+    ) {
+      return;
+    }
+    try {
+      if (canCloseVoting(lifecycle)) {
+        await closeVoting({ campaignId });
+        showShareMessage("Voting closed");
+      } else {
+        const closed = await closeAllCategoryVoting({ campaignId });
+        showShareMessage(
+          closed > 0
+            ? `Closed voting for ${closed} categor${closed === 1 ? "y" : "ies"}`
+            : "No categories with open voting",
+        );
+      }
+      startTransition(() => router.refresh());
+    } catch (error) {
+      showShareMessage(
+        error instanceof Error ? error.message : "Could not close voting.",
+        "error",
+      );
+    }
+  }, [
+    campaignId,
+    campaignName,
+    closeAllCategoryVoting,
+    closeVoting,
+    confirm,
+    lifecycle,
+    router,
+    showShareMessage,
+    votingOpenCount,
+  ]);
 
   const handleShare = useCallback(async () => {
     const publicUrl = `${window.location.origin}${publicHref}`;
@@ -128,21 +196,31 @@ export function CampaignManagementBar({
             className="bg-emerald-600 text-white hover:bg-emerald-700"
             onClick={handleJumpToCurrent}
           />
-          <ToolbarDivider />
+          {showRevealAll || showCloseVotes ? <ToolbarDivider /> : null}
         </>
       ) : null}
 
       {showRevealAll ? (
-        <>
-          <ToolbarActionButton
-            label="Reveal all winners"
-            icon={<RiTrophyLine className="size-4" />}
-            disabled={awaitingReveal === 0}
-            variant="outline"
-            className="border-amber-500/40 text-amber-900 hover:bg-amber-500/10 dark:text-amber-100"
-            onClick={() => void handleRevealAll()}
-          />
-        </>
+        <ToolbarActionButton
+          label="Reveal all winners"
+          icon={<RiTrophyLine className="size-4" />}
+          disabled={revealAllDisabled}
+          variant="secondary"
+          labelMode="icon-only"
+          className={toolbarRunActionClassName}
+          onClick={() => void handleRevealAll()}
+        />
+      ) : null}
+
+      {showCloseVotes ? (
+        <ToolbarActionButton
+          label="Close votes"
+          icon={<RiStopCircleLine className="size-4" />}
+          variant="secondary"
+          labelMode="icon-only"
+          className={toolbarRunActionClassName}
+          onClick={() => void handleCloseVotes()}
+        />
       ) : null}
 
       <div className="min-h-px flex-1" aria-hidden />
@@ -155,6 +233,7 @@ export function CampaignManagementBar({
           workspaceId={workspaceId}
           lifecycle={lifecycle}
           canLaunch={canLaunch}
+          awaitingReveal={awaitingReveal}
           layout="compact-toolbar"
         />
 

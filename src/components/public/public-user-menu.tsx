@@ -10,11 +10,13 @@ import {
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useAuthRedirectTarget } from "@/lib/auth-redirect";
 import { cn } from "@/lib/utils";
 
 export function PublicUserMenu() {
   const { isLoaded, isSignedIn } = useAuth();
   const { openUserProfile } = useClerk();
+  const redirectTarget = useAuthRedirectTarget();
   const workspaces = useQuery(api.workspaces.listForViewer);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -44,7 +46,11 @@ export function PublicUserMenu() {
 
   if (!isSignedIn) {
     return (
-      <SignInButton mode="modal">
+      <SignInButton
+        mode="modal"
+        forceRedirectUrl={redirectTarget}
+        signUpForceRedirectUrl={redirectTarget}
+      >
         <button
           type="button"
           className="flex items-center gap-2 border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-amber-300 hover:bg-amber-500/20"

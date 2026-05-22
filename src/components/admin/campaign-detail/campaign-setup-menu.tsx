@@ -1,16 +1,26 @@
 "use client";
 
+import { api } from "@cvx/_generated/api";
 import type { Id } from "@cvx/_generated/dataModel";
-import { RiNodeTree, RiPencilLine, RiSettings3Line } from "@remixicon/react";
+import {
+  RiDeleteBinLine,
+  RiNodeTree,
+  RiPencilLine,
+  RiSettings3Line,
+} from "@remixicon/react";
+import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { startTransition, useCallback, useState } from "react";
+import { useAdmin } from "@/components/admin/admin-context";
 import { LiveCampaignEditDialog } from "@/components/admin/campaign-detail/live-campaign-edit-dialog";
 import { LiveCampaignWarningDialog } from "@/components/admin/campaign-detail/live-campaign-warning-dialog";
+import { useConfirm } from "@/components/confirm-dialog-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -19,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  canDeleteCampaign,
   canEditCampaignMetadata,
   canManageCampaignContent,
   isLiveCampaignLifecycle,
@@ -42,21 +53,21 @@ export function CampaignSetupMenu({
   disabled?: boolean;
 }) {
   const router = useRouter();
+  const { showShareMessage } = useAdmin();
+  const confirm = useConfirm();
+  const removeCampaign = useMutation(api.campaigns.remove);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [contentDialogOpen, setContentDialogOpen] = useState(false);
 
   const canEdit = canEditCampaignMetadata(lifecycle);
   const canManage = canManageCampaignContent(lifecycle);
+  const canDelete = canDeleteCampaign(lifecycle);
   const editHref = `/admin/campaigns/${campaignId}/edit`;
   const contentHref = `/admin/campaigns/${campaignId}/content`;
 
   const goToEdit = useCallback(() => {
     router.push(editHref);
   }, [editHref, router]);
-
-  const goToContent = useCallback(() => {
-    router.push(contentHref);
-  }, [contentHref, router]);
 
   const handleEdit = useCallback(() => {
     if (isLiveCampaignLifecycle(lifecycle)) {
@@ -66,6 +77,10 @@ export function CampaignSetupMenu({
     goToEdit();
   }, [goToEdit, lifecycle]);
 
+  const goToContent = useCallback(() => {
+    router.push(contentHref);
+  }, [contentHref, router]);
+
   const handleCategories = useCallback(() => {
     if (isLiveCampaignLifecycle(lifecycle)) {
       setContentDialogOpen(true);
@@ -74,7 +89,37 @@ export function CampaignSetupMenu({
     goToContent();
   }, [goToContent, lifecycle]);
 
-  if (!canEdit && !canManage) {
+  const handleDelete = useCallback(async () => {
+    if (
+      !(await confirm({
+        title: "Delete campaign?",
+        description: `Delete "${campaignName}"? It will be removed from the campaign list.`,
+        confirmLabel: "Delete",
+        variant: "destructive",
+      }))
+    ) {
+      return;
+    }
+    try {
+      await removeCampaign({ campaignId });
+      showShareMessage("Campaign deleted");
+      startTransition(() => router.push("/admin"));
+    } catch (error) {
+      showShareMessage(
+        error instanceof Error ? error.message : "Could not delete.",
+        "error",
+      );
+    }
+  }, [
+    campaignId,
+    campaignName,
+    confirm,
+    removeCampaign,
+    router,
+    showShareMessage,
+  ]);
+
+  if (!canEdit && !canManage && !canDelete) {
     return null;
   }
 
@@ -117,6 +162,18 @@ export function CampaignSetupMenu({
               <RiNodeTree />
               Manage categories
             </DropdownMenuItem>
+          ) : null}
+          {canDelete ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => void handleDelete()}
+              >
+                <RiDeleteBinLine />
+                Delete campaign
+              </DropdownMenuItem>
+            </>
           ) : null}
         </DropdownMenuContent>
       </DropdownMenu>

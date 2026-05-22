@@ -16,6 +16,7 @@ import {
   ToolbarActionButton,
   type ToolbarLabelMode,
 } from "@/components/admin/campaign-detail/toolbar-icon-button";
+import { useConfirm } from "@/components/confirm-dialog-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -52,6 +53,7 @@ export function CategoryBallotControls({
 }) {
   const router = useRouter();
   const { showShareMessage } = useAdmin();
+  const confirm = useConfirm();
   const closeVoting = useMutation(api.campaignCategories.closeCategoryVoting);
   const revealWinner = useMutation(api.campaignCategories.revealCategoryWinner);
   const setCategoryWinner = useMutation(
@@ -65,7 +67,7 @@ export function CategoryBallotControls({
     : undefined;
   const showLabel = labelMode === "always";
 
-  const confirmCloseOrder = useCallback(() => {
+  const confirmCloseOrder = useCallback(async () => {
     if (
       !closeHead ||
       category.categoryStatus !== "open" ||
@@ -73,12 +75,14 @@ export function CategoryBallotControls({
     ) {
       return true;
     }
-    return window.confirm(
-      `Close voting for "${category.name}" before "${closeHead.name}"?`,
-    );
-  }, [category, closeHead]);
+    return confirm({
+      title: "Close out of order?",
+      description: `Close voting for "${category.name}" before "${closeHead.name}"?`,
+      confirmLabel: "Close voting",
+    });
+  }, [category, closeHead, confirm]);
 
-  const confirmRevealOrder = useCallback(() => {
+  const confirmRevealOrder = useCallback(async () => {
     if (
       !revealHead ||
       category.categoryStatus !== "voting_closed" ||
@@ -86,13 +90,15 @@ export function CategoryBallotControls({
     ) {
       return true;
     }
-    return window.confirm(
-      `Reveal winner for "${category.name}" before "${revealHead.name}"?`,
-    );
-  }, [category, revealHead]);
+    return confirm({
+      title: "Reveal out of order?",
+      description: `Reveal winner for "${category.name}" before "${revealHead.name}"?`,
+      confirmLabel: "Show winner",
+    });
+  }, [category, confirm, revealHead]);
 
   const handleClose = useCallback(async () => {
-    if (!confirmCloseOrder()) return;
+    if (!(await confirmCloseOrder())) return;
     try {
       await closeVoting({ categoryId: category._id });
       showShareMessage(`Voting closed for "${category.name}"`);
@@ -113,7 +119,7 @@ export function CategoryBallotControls({
   ]);
 
   const handleReveal = useCallback(async () => {
-    if (!confirmRevealOrder()) return;
+    if (!(await confirmRevealOrder())) return;
     try {
       await revealWinner({ categoryId: category._id });
       showShareMessage(`Winner revealed for "${category.name}"`);

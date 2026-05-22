@@ -48,7 +48,7 @@ export function RunVariantQueue({ run }: { run: CampaignRunState }) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => run.closeCategoryVoting(head.id)}
+                  onClick={() => void run.closeCategoryVoting(head.id)}
                 >
                   Close voting
                 </Button>
@@ -56,7 +56,7 @@ export function RunVariantQueue({ run }: { run: CampaignRunState }) {
               {head.status === "voting_closed" ? (
                 <Button
                   type="button"
-                  onClick={() => run.revealCategoryWinner(head.id)}
+                  onClick={() => void run.revealCategoryWinner(head.id)}
                 >
                   Show winner
                 </Button>

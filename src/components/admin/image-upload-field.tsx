@@ -46,10 +46,10 @@ export type ImageUploadFieldProps = {
   aspect: number;
   previewClassName?: string;
   disabled?: boolean;
-  variant?: "default" | "compact";
+  /** Form field with label, or inline thumbnail only */
+  layout?: "field" | "inline";
   className?: string;
   processingTarget: ImageProcessingTarget;
-  /** Called with the processed storage id after crop succeeds. */
   onUpload: (storageId: Id<"_storage">) => Promise<void>;
   onRemove: () => Promise<void>;
 };
@@ -61,7 +61,7 @@ export function ImageUploadField({
   aspect,
   previewClassName,
   disabled,
-  variant = "default",
+  layout = "field",
   className,
   processingTarget,
   onUpload,
@@ -86,11 +86,11 @@ export function ImageUploadField({
     useState<CropPercent | null>(null);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [uploading, setUploading] = useState(false);
-  /** Crop % must match server-oriented preview (not raw browser decode). */
   const [previewSynced, setPreviewSynced] = useState(false);
   const [saving, setSaving] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [cropError, setCropError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const revokeImageSrc = useCallback((url: string | null) => {
     if (url?.startsWith("blob:")) {
@@ -144,102 +144,160 @@ export function ImageUploadField({
     [abandonStagedImage],
   );
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file || disabled) return;
+  const processFile = useCallback(
+    (file: File) => {
+      if (!file || disabled) return;
 
-    if (!isAllowedImageFile(file)) {
-      setFieldError("Use a JPEG, PNG, WebP, AVIF, or HEIC photo.");
-      return;
-    }
+      if (!isAllowedImageFile(file)) {
+        setFieldError("Use a JPEG, PNG, WebP, AVIF, or HEIC photo.");
+        return;
+      }
 
-    setFieldError(null);
-    resetCropState();
-    setCropOpen(true);
-    setUploading(true);
-    setPreviewSynced(false);
+      setFieldError(null);
+      resetCropState();
+      setCropOpen(true);
+      setUploading(true);
+      setPreviewSynced(false);
 
-    const generation = stagingGenerationRef.current + 1;
-    stagingGenerationRef.current = generation;
+      const generation = stagingGenerationRef.current + 1;
+      stagingGenerationRef.current = generation;
 
-    void (async () => {
-      try {
-        const assessment = await assessClientImageFile(file);
-        const useServer = !assessment.canProcessInBrowser;
-        if (stagingGenerationRef.current !== generation) {
-          return;
-        }
+      void (async () => {
+        try {
+          const assessment = await assessClientImageFile(file);
+          const useServer = !assessment.canProcessInBrowser;
+          if (stagingGenerationRef.current !== generation) {
+            return;
+          }
 
-        setUseServerPipeline(useServer);
-        logImageProcessing("pipeline-selected", {
-          pipeline: useServer ? "server" : "client",
-          fileName: file.name,
-          fileType: file.type || "(empty)",
-          fileSize: file.size,
-          naturalWidth: assessment.naturalWidth,
-          naturalHeight: assessment.naturalHeight,
-        });
+          setUseServerPipeline(useServer);
+          logImageProcessing("pipeline-selected", {
+            pipeline: useServer ? "server" : "client",
+            fileName: file.name,
+            fileType: file.type || "(empty)",
+            fileSize: file.size,
+            naturalWidth: assessment.naturalWidth,
+            naturalHeight: assessment.naturalHeight,
+          });
 
-        if (!useServer) {
-          originalFileRef.current = file;
-          setImageSrc(URL.createObjectURL(file));
+          if (!useServer) {
+            originalFileRef.current = file;
+            setImageSrc(URL.createObjectURL(file));
+            setCrop({ x: 0, y: 0 });
+            setZoom(1);
+            setCroppedAreaPercent(null);
+            setCroppedAreaPixels(null);
+            setPreviewSynced(true);
+            return;
+          }
+
+          originalFileRef.current = null;
+
+          let stagedId: Id<"_storage"> | null = null;
+          stagedId = await uploadOriginalToStorage(
+            () => generateUploadUrl({}),
+            file,
+          );
+          if (stagingGenerationRef.current !== generation) {
+            abandonStaged(stagedId);
+            return;
+          }
+          stagedStorageIdRef.current = stagedId;
+
+          const previewBlob = await fetchCropPreviewBlob(stagedId);
+          if (stagingGenerationRef.current !== generation) {
+            abandonStaged(stagedStorageIdRef.current);
+            stagedStorageIdRef.current = null;
+            return;
+          }
+          setImageSrc((current) => {
+            revokeImageSrc(current);
+            return URL.createObjectURL(previewBlob);
+          });
           setCrop({ x: 0, y: 0 });
           setZoom(1);
           setCroppedAreaPercent(null);
           setCroppedAreaPixels(null);
           setPreviewSynced(true);
-          return;
-        }
-
-        originalFileRef.current = null;
-
-        let stagedId: Id<"_storage"> | null = null;
-        stagedId = await uploadOriginalToStorage(
-          () => generateUploadUrl({}),
-          file,
-        );
-        if (stagingGenerationRef.current !== generation) {
-          abandonStaged(stagedId);
-          return;
-        }
-        stagedStorageIdRef.current = stagedId;
-
-        const previewBlob = await fetchCropPreviewBlob(stagedId);
-        if (stagingGenerationRef.current !== generation) {
+        } catch (loadError) {
+          if (stagingGenerationRef.current !== generation) {
+            abandonStaged(stagedStorageIdRef.current);
+            stagedStorageIdRef.current = null;
+            return;
+          }
           abandonStaged(stagedStorageIdRef.current);
           stagedStorageIdRef.current = null;
-          return;
+          const message =
+            loadError instanceof Error
+              ? loadError.message
+              : "Could not upload this photo.";
+          setCropError(message);
+        } finally {
+          if (stagingGenerationRef.current === generation) {
+            setUploading(false);
+          }
         }
-        setImageSrc((current) => {
-          revokeImageSrc(current);
-          return URL.createObjectURL(previewBlob);
-        });
-        setCrop({ x: 0, y: 0 });
-        setZoom(1);
-        setCroppedAreaPercent(null);
-        setCroppedAreaPixels(null);
-        setPreviewSynced(true);
-      } catch (loadError) {
-        if (stagingGenerationRef.current !== generation) {
-          abandonStaged(stagedStorageIdRef.current);
-          stagedStorageIdRef.current = null;
-          return;
-        }
-        abandonStaged(stagedStorageIdRef.current);
-        stagedStorageIdRef.current = null;
-        const message =
-          loadError instanceof Error
-            ? loadError.message
-            : "Could not upload this photo.";
-        setCropError(message);
-      } finally {
-        if (stagingGenerationRef.current === generation) {
-          setUploading(false);
-        }
-      }
-    })();
+      })();
+    },
+    [
+      abandonStaged,
+      disabled,
+      generateUploadUrl,
+      resetCropState,
+      revokeImageSrc,
+    ],
+  );
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) {
+      processFile(file);
+    }
   };
+
+  const openFilePicker = useCallback(() => {
+    if (disabled || saving) return;
+    fileInputRef.current?.click();
+  }, [disabled, saving]);
+
+  const handleDragEnter = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (disabled || saving) return;
+      setIsDragging(true);
+    },
+    [disabled, saving],
+  );
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
+  const handleDragLeave = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.currentTarget.contains(event.relatedTarget as Node)) {
+      return;
+    }
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsDragging(false);
+      if (disabled || saving) return;
+      const file = event.dataTransfer.files?.[0];
+      if (file) {
+        processFile(file);
+      }
+    },
+    [disabled, processFile, saving],
+  );
 
   const handleSaveCrop = async () => {
     if (!imageSrc || !previewSynced || disabled || uploading) {
@@ -335,7 +393,9 @@ export function ImageUploadField({
     }
   };
 
-  const handleRemove = async () => {
+  const handleRemove = async (event: React.MouseEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
     if (disabled || saving) return;
     setSaving(true);
     setFieldError(null);
@@ -482,88 +542,129 @@ export function ImageUploadField({
     </Dialog.Root>
   );
 
-  if (variant === "compact") {
+  const preview = (
+    <div
+      className={cn(
+        "group/photo relative",
+        layout === "inline" ? className : undefined,
+      )}
+    >
+      <input
+        ref={fileInputRef}
+        id={inputId}
+        type="file"
+        accept={FILE_ACCEPT}
+        className="sr-only"
+        disabled={disabled || saving}
+        onChange={handleFileChange}
+      />
+      <button
+        type="button"
+        disabled={disabled || saving}
+        aria-label={
+          imageUrl
+            ? `Change ${label.toLowerCase()}`
+            : `Add ${label.toLowerCase()}`
+        }
+        className={cn(
+          "relative block w-full overflow-hidden rounded-lg border bg-muted/30 text-left transition-colors outline-none",
+          "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30",
+          imageUrl
+            ? "border-border hover:border-foreground/20"
+            : "border-dashed border-border hover:border-foreground/25 hover:bg-muted/50",
+          isDragging && "border-primary bg-primary/5 ring-2 ring-primary/20",
+          (disabled || saving) && "pointer-events-none opacity-50",
+          previewClassName,
+        )}
+        style={{ aspectRatio: aspect }}
+        onClick={openFilePicker}
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {imageUrl ? (
+          <div
+            className="size-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${imageUrl})` }}
+            role="img"
+            aria-label={label}
+          />
+        ) : (
+          <span className="flex size-full flex-col items-center justify-center gap-1.5 px-3 text-center text-muted-foreground">
+            <RiImageAddLine
+              className={cn(
+                "opacity-60",
+                layout === "inline" ? "size-5" : "size-6",
+              )}
+              aria-hidden
+            />
+            <span
+              className={cn(
+                "font-medium",
+                layout === "inline" ? "text-[10px]" : "text-xs",
+              )}
+            >
+              {isDragging ? "Drop photo" : "Add photo"}
+            </span>
+            {!isDragging && layout === "field" ? (
+              <span className="text-[10px] text-muted-foreground/80">
+                Click or drag and drop
+              </span>
+            ) : null}
+          </span>
+        )}
+
+        {imageUrl && !disabled ? (
+          <span className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/55 opacity-0 transition-opacity group-hover/photo:opacity-100 group-focus-within/photo:opacity-100">
+            <span className="inline-flex size-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+              <RiImageEditLine className="size-4" aria-hidden />
+            </span>
+          </span>
+        ) : null}
+
+        {saving ? (
+          <span className="absolute inset-0 flex items-center justify-center bg-background/80">
+            <RiLoader4Line
+              className="size-5 animate-spin text-muted-foreground"
+              aria-hidden
+            />
+          </span>
+        ) : null}
+      </button>
+
+      {imageUrl && !disabled ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          className="absolute top-1.5 right-1.5 z-10 size-7 bg-background/90 opacity-0 shadow-sm transition-opacity group-hover/photo:opacity-100 group-focus-within/photo:opacity-100"
+          disabled={saving}
+          aria-label={`Remove ${label.toLowerCase()}`}
+          onClick={(event) => void handleRemove(event)}
+        >
+          <RiDeleteBinLine className="size-3.5" />
+        </Button>
+      ) : null}
+
+      {fieldError ? (
+        <p
+          className={cn(
+            "text-destructive",
+            layout === "inline" ? "mt-1 text-xs" : "mt-1.5 text-sm",
+          )}
+          role="alert"
+        >
+          {fieldError}
+        </p>
+      ) : null}
+    </div>
+  );
+
+  if (layout === "inline") {
     return (
       <>
-        <div className={cn("group/photo relative", className)}>
-          <input
-            ref={fileInputRef}
-            id={inputId}
-            type="file"
-            accept={FILE_ACCEPT}
-            className="sr-only"
-            disabled={disabled || saving}
-            onChange={handleFileChange}
-          />
-          <div
-            className={cn(
-              "relative overflow-hidden rounded-lg border border-border bg-muted/40",
-              previewClassName,
-            )}
-            style={{ aspectRatio: aspect }}
-          >
-            {imageUrl ? (
-              <div
-                className="size-full bg-cover bg-center"
-                style={{ backgroundImage: `url(${imageUrl})` }}
-                role="img"
-                aria-label={label}
-              />
-            ) : (
-              <button
-                type="button"
-                className="flex size-full flex-col items-center justify-center gap-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
-                disabled={disabled || saving}
-                aria-label={`Add ${label.toLowerCase()}`}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <RiImageAddLine className="size-6 opacity-60" aria-hidden />
-                <span className="text-[10px] font-medium uppercase tracking-wide">
-                  Add photo
-                </span>
-              </button>
-            )}
-            {imageUrl && !disabled ? (
-              <div className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/55 opacity-0 transition-opacity group-hover/photo:opacity-100 group-focus-within/photo:opacity-100">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon-sm"
-                  className="size-8"
-                  disabled={saving}
-                  aria-label={`Change ${label.toLowerCase()}`}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <RiImageEditLine className="size-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon-sm"
-                  className="size-8"
-                  disabled={saving}
-                  aria-label={`Remove ${label.toLowerCase()}`}
-                  onClick={() => void handleRemove()}
-                >
-                  <RiDeleteBinLine className="size-4" />
-                </Button>
-              </div>
-            ) : null}
-            {saving ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                <RiLoader4Line
-                  className="size-5 animate-spin text-muted-foreground"
-                  aria-hidden
-                />
-              </div>
-            ) : null}
-          </div>
-          {fieldError ? (
-            <p className="mt-1 text-xs text-destructive" role="alert">
-              {fieldError}
-            </p>
-          ) : null}
-        </div>
+        {preview}
         {cropDialog}
       </>
     );
@@ -572,81 +673,12 @@ export function ImageUploadField({
   return (
     <Field className={className}>
       <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
-      <FieldContent className="gap-3">
+      <FieldContent className="gap-2">
         {description ? (
           <FieldDescription>{description}</FieldDescription>
         ) : null}
-        <div
-          className={cn(
-            "relative overflow-hidden border border-border bg-muted/40",
-            previewClassName,
-          )}
-          style={{ aspectRatio: aspect }}
-        >
-          {imageUrl ? (
-            <div
-              className="size-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${imageUrl})` }}
-              role="img"
-              aria-label={label}
-            />
-          ) : (
-            <div className="flex size-full flex-col items-center justify-center gap-1 text-muted-foreground">
-              <RiImageAddLine className="size-8 opacity-60" aria-hidden />
-              <span className="text-xs">No photo</span>
-            </div>
-          )}
-          {saving ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80 text-sm text-muted-foreground">
-              <RiLoader4Line className="size-6 animate-spin" aria-hidden />
-              Processing photo…
-            </div>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <input
-            ref={fileInputRef}
-            id={inputId}
-            type="file"
-            accept={FILE_ACCEPT}
-            className="sr-only"
-            disabled={disabled || saving}
-            onChange={handleFileChange}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={disabled || saving}
-            className="gap-1.5"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {imageUrl ? (
-              <RiImageEditLine className="size-4" aria-hidden />
-            ) : (
-              <RiImageAddLine className="size-4" aria-hidden />
-            )}
-            {imageUrl ? "Change photo" : "Add photo"}
-          </Button>
-          {imageUrl ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={disabled || saving}
-              onClick={() => void handleRemove()}
-            >
-              Remove
-            </Button>
-          ) : null}
-        </div>
-        {fieldError ? (
-          <p className="text-sm text-destructive" role="alert">
-            {fieldError}
-          </p>
-        ) : null}
+        {preview}
       </FieldContent>
-
       {cropDialog}
     </Field>
   );

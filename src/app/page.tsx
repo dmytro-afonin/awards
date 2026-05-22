@@ -4,9 +4,11 @@ import { SignInButton, useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { PublicShell } from "@/components/public/public-shell";
 import { PublicSitePage } from "@/components/public/public-site-page";
+import { useAuthRedirectTarget } from "@/lib/auth-redirect";
 
 export default function HomePage() {
   const { isLoaded, isSignedIn } = useAuth();
+  const redirectTarget = useAuthRedirectTarget();
 
   return (
     <PublicShell>
@@ -32,7 +34,11 @@ export default function HomePage() {
               Explore campaigns
             </Link>
             {isLoaded && !isSignedIn ? (
-              <SignInButton mode="modal">
+              <SignInButton
+                mode="modal"
+                forceRedirectUrl={redirectTarget}
+                signUpForceRedirectUrl={redirectTarget}
+              >
                 <button
                   type="button"
                   className="border border-zinc-600 px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] text-zinc-300 hover:border-amber-500/50 hover:text-amber-300"

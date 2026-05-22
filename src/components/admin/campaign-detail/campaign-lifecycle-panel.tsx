@@ -2,24 +2,20 @@
 
 import { api } from "@cvx/_generated/api";
 import type { Id } from "@cvx/_generated/dataModel";
-import { RiStopCircleLine } from "@remixicon/react";
 import { useMutation } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
 import { EditCampaignButton } from "@/components/admin/campaign-detail/edit-campaign-button";
-import { ManageCategoriesButton } from "@/components/admin/campaign-detail/manage-categories-button";
-import { ToolbarActionButton } from "@/components/admin/campaign-detail/toolbar-icon-button";
+import { useConfirm } from "@/components/confirm-dialog-provider";
 import { Button } from "@/components/ui/button";
 import {
   canArchiveCampaign,
-  canCloseVoting,
   canDeleteCampaign,
   canEditCampaignMetadata,
   canFinishCampaign,
   canLaunchFromDraft,
-  canManageCampaignContent,
   canOpenVoting,
   canViewPublicCampaign,
   normalizeCampaignLifecycle,
@@ -34,6 +30,7 @@ type CampaignLifecyclePanelProps = {
   workspaceId: Id<"workspaces">;
   lifecycle: string;
   canLaunch: boolean;
+  awaitingReveal?: number;
   disabled?: boolean;
   layout?: "stack" | "toolbar" | "compact-toolbar";
   className?: string;
@@ -46,18 +43,19 @@ export function CampaignLifecyclePanel({
   workspaceId,
   lifecycle,
   canLaunch,
+  awaitingReveal = 0,
   disabled = false,
   layout = "stack",
   className,
 }: CampaignLifecyclePanelProps) {
   const router = useRouter();
   const { showShareMessage } = useAdmin();
+  const confirm = useConfirm();
   const state = normalizeCampaignLifecycle(lifecycle);
 
   const launch = useMutation(api.campaigns.launch);
   const goLiveAndVote = useMutation(api.campaigns.goLiveAndVote);
   const openVoting = useMutation(api.campaigns.openVoting);
-  const closeVoting = useMutation(api.campaigns.closeVoting);
   const finishCampaign = useMutation(api.campaigns.finishCampaign);
   const archiveCampaign = useMutation(api.campaigns.archive);
   const removeCampaign = useMutation(api.campaigns.remove);
@@ -80,20 +78,24 @@ export function CampaignLifecyclePanel({
 
   const handleLaunch = useCallback(async () => {
     if (
-      !window.confirm(
-        `Launch "${campaignName}"? The campaign will become visible but voting stays closed until you open it.`,
-      )
+      !(await confirm({
+        title: "Launch campaign?",
+        description: `Launch "${campaignName}"? The campaign will become visible but voting stays closed until you open it.`,
+        confirmLabel: "Launch",
+      }))
     ) {
       return;
     }
     await run(() => launch({ campaignId }), "Campaign launched — browse-only");
-  }, [campaignId, campaignName, launch, run]);
+  }, [campaignId, campaignName, confirm, launch, run]);
 
   const handleGoLiveAndVote = useCallback(async () => {
     if (
-      !window.confirm(
-        `Launch "${campaignName}" and open voting immediately? Members will be able to vote right away.`,
-      )
+      !(await confirm({
+        title: "Launch and open voting?",
+        description: `Launch "${campaignName}" and open voting immediately? Members will be able to vote right away.`,
+        confirmLabel: "Launch & open voting",
+      }))
     ) {
       return;
     }
@@ -101,42 +103,51 @@ export function CampaignLifecyclePanel({
       () => goLiveAndVote({ campaignId }),
       "Campaign is live — voting open",
     );
-  }, [campaignId, campaignName, goLiveAndVote, run]);
+  }, [campaignId, campaignName, confirm, goLiveAndVote, run]);
 
   const handleOpenVoting = useCallback(async () => {
-    if (!window.confirm(`Open voting for "${campaignName}"?`)) {
-      return;
-    }
-    await run(() => openVoting({ campaignId }), "Voting is now open");
-  }, [campaignId, campaignName, openVoting, run]);
-
-  const handleCloseVoting = useCallback(async () => {
     if (
-      !window.confirm(
-        `Close voting for "${campaignName}"? No more votes will be accepted.`,
-      )
+      !(await confirm({
+        title: "Open voting?",
+        description: `Open voting for "${campaignName}"?`,
+        confirmLabel: "Open voting",
+      }))
     ) {
       return;
     }
-    await run(() => closeVoting({ campaignId }), "Voting closed");
-  }, [campaignId, campaignName, closeVoting, run]);
+    await run(() => openVoting({ campaignId }), "Voting is now open");
+  }, [campaignId, campaignName, confirm, openVoting, run]);
 
   const handleFinish = useCallback(async () => {
-    if (
-      !window.confirm(
-        `Finish "${campaignName}"? Winners will be published on the public campaign.`,
-      )
+    if (awaitingReveal > 0) {
+      if (
+        !(await confirm({
+          title: "Publish remaining winners?",
+          description: `${awaitingReveal} categor${awaitingReveal === 1 ? "y still has" : "ies still have"} unrevealed winners. Finishing "${campaignName}" will publish them all on the public campaign.`,
+          confirmLabel: "Finish and publish all",
+        }))
+      ) {
+        return;
+      }
+    } else if (
+      !(await confirm({
+        title: "Finish campaign?",
+        description: `Finish "${campaignName}"? The campaign will move to finished and winners stay public.`,
+        confirmLabel: "Finish campaign",
+      }))
     ) {
       return;
     }
     await run(() => finishCampaign({ campaignId }), "Campaign finished");
-  }, [campaignId, campaignName, finishCampaign, run]);
+  }, [awaitingReveal, campaignId, campaignName, confirm, finishCampaign, run]);
 
   const handleArchive = useCallback(async () => {
     if (
-      !window.confirm(
-        `Archive "${campaignName}"? It will be hidden from the campaign list.`,
-      )
+      !(await confirm({
+        title: "Archive campaign?",
+        description: `Archive "${campaignName}"? It will be hidden from the campaign list.`,
+        confirmLabel: "Archive",
+      }))
     ) {
       return;
     }
@@ -150,13 +161,23 @@ export function CampaignLifecyclePanel({
         "error",
       );
     }
-  }, [archiveCampaign, campaignId, campaignName, router, showShareMessage]);
+  }, [
+    archiveCampaign,
+    campaignId,
+    campaignName,
+    confirm,
+    router,
+    showShareMessage,
+  ]);
 
   const handleDelete = useCallback(async () => {
     if (
-      !window.confirm(
-        `Delete "${campaignName}"? It will be removed from the campaign list.`,
-      )
+      !(await confirm({
+        title: "Delete campaign?",
+        description: `Delete "${campaignName}"? It will be removed from the campaign list.`,
+        confirmLabel: "Delete",
+        variant: "destructive",
+      }))
     ) {
       return;
     }
@@ -170,24 +191,20 @@ export function CampaignLifecyclePanel({
         "error",
       );
     }
-  }, [campaignId, campaignName, removeCampaign, router, showShareMessage]);
+  }, [
+    campaignId,
+    campaignName,
+    confirm,
+    removeCampaign,
+    router,
+    showShareMessage,
+  ]);
 
   const publicHref = publicCampaignPath(slug, workspaceId);
 
   const editDetails = canEditCampaignMetadata(lifecycle) ? (
     <EditCampaignButton
       key="edit-details"
-      campaignId={campaignId}
-      campaignName={campaignName}
-      lifecycle={lifecycle}
-      disabled={disabled}
-      size="sm"
-    />
-  ) : null;
-
-  const manageCategories = canManageCampaignContent(lifecycle) ? (
-    <ManageCategoriesButton
-      key="manage-categories"
       campaignId={campaignId}
       campaignName={campaignName}
       lifecycle={lifecycle}
@@ -236,23 +253,13 @@ export function CampaignLifecyclePanel({
     </Button>
   ) : null;
 
-  const closeCampaignVotingBtn = canCloseVoting(lifecycle) ? (
-    <ToolbarActionButton
-      key="close-campaign-voting"
-      label="End campaign voting"
-      icon={<RiStopCircleLine className="size-4" />}
-      variant="default"
-      className="bg-sky-600 text-white hover:bg-sky-700"
-      disabled={disabled}
-      onClick={handleCloseVoting}
-    />
-  ) : null;
-
   const finishBtn = canFinishCampaign(lifecycle) ? (
     <Button
       key="finish"
       type="button"
+      variant="outline"
       size="sm"
+      className="bg-background/80 text-muted-foreground hover:text-foreground"
       disabled={disabled}
       onClick={handleFinish}
     >
@@ -324,11 +331,7 @@ export function CampaignLifecyclePanel({
 
   if (layout === "compact-toolbar") {
     const campaignPrimary =
-      launchAndVote ??
-      openVotingBtn ??
-      closeCampaignVotingBtn ??
-      finishBtn ??
-      archiveBtn;
+      launchAndVote ?? openVotingBtn ?? finishBtn ?? archiveBtn;
 
     return (
       <div
@@ -338,7 +341,6 @@ export function CampaignLifecyclePanel({
         {launchBrowse && campaignPrimary === launchAndVote
           ? launchBrowse
           : null}
-        {deleteBtn}
         {launchHint}
         {archivedNote}
       </div>
@@ -349,12 +351,10 @@ export function CampaignLifecyclePanel({
     return (
       <div className="flex flex-wrap items-center gap-2">
         {editDetails}
-        {manageCategories}
         {launchBrowse}
         {launchAndVote}
         {launchHint}
         {openVotingBtn}
-        {closeCampaignVotingBtn}
         {finishBtn}
         {archiveBtn}
         {deleteBtn}
@@ -367,12 +367,10 @@ export function CampaignLifecyclePanel({
   return (
     <div className="flex flex-col gap-2">
       {editDetails}
-      {manageCategories}
       {launchBrowse}
       {launchAndVote}
       {launchHint}
       {openVotingBtn}
-      {closeCampaignVotingBtn}
       {finishBtn}
       {archiveBtn}
       {deleteBtn}

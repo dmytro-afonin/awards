@@ -108,7 +108,7 @@ export function CampaignWideActions({ run }: { run: CampaignRunState }) {
           variant="outline"
           size="sm"
           disabled={run.votingOpenCount === 0}
-          onClick={() => run.stopCampaignVoting()}
+          onClick={() => void run.stopCampaignVoting()}
         >
           <RiStopCircleLine />
           Stop voting
@@ -118,7 +118,7 @@ export function CampaignWideActions({ run }: { run: CampaignRunState }) {
           variant="secondary"
           size="sm"
           disabled={run.awaitingRevealCount === 0}
-          onClick={() => run.showAllWinners()}
+          onClick={() => void run.showAllWinners()}
         >
           <RiTrophyLine />
           Show winners
@@ -285,7 +285,7 @@ export function CategoryActionButtons({
           <Button
             type="button"
             variant="outline"
-            onClick={() => run.closeCategoryVoting(category.id)}
+            onClick={() => void run.closeCategoryVoting(category.id)}
           >
             <RiStopCircleLine />
             Close voting
@@ -294,7 +294,7 @@ export function CategoryActionButtons({
         {category.status === "voting_closed" ? (
           <Button
             type="button"
-            onClick={() => run.revealCategoryWinner(category.id)}
+            onClick={() => void run.revealCategoryWinner(category.id)}
           >
             <RiTrophyLine />
             Show winner

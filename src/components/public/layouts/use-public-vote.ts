@@ -7,6 +7,7 @@ import { useConvexAuth, useMutation } from "convex/react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { buildSignInPageHref } from "@/lib/auth-redirect";
 
 type CategoryVoteData = {
   campaign: { _id: Id<"campaigns"> };
@@ -30,7 +31,10 @@ export function usePublicVote(data: CategoryVoteData | undefined) {
   );
 
   const activeSelection = selectedId ?? data?.selectedNomineeId ?? null;
-  const signInHref = `/sign-in?redirect_url=${encodeURIComponent(`${pathname}?${searchParams.toString()}`)}`;
+  const search = searchParams.toString();
+  const signInHref = buildSignInPageHref(
+    `${pathname}${search ? `?${search}` : ""}`,
+  );
   const canSelect = Boolean(data?.canVote && !authLoading && isAuthenticated);
   const voteInFlight = pendingNomineeId !== null;
 

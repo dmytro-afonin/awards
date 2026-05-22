@@ -9,6 +9,7 @@ import { useAdmin } from "@/components/admin/admin-context";
 import { CampaignLifecycleBadge } from "@/components/admin/campaign-lifecycle-badge";
 import { CampaignMetadataFields } from "@/components/admin/campaign-metadata-fields";
 import { VisibilityChangeDialog } from "@/components/admin/visibility-change-dialog";
+import { useConfirm } from "@/components/confirm-dialog-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,6 +40,7 @@ type CampaignEditorProps = {
 export function CampaignEditor({ campaignId }: CampaignEditorProps) {
   const router = useRouter();
   const { workspaceId, setSelectedCampaignId, showShareMessage } = useAdmin();
+  const confirm = useConfirm();
 
   const campaign = useQuery(api.campaigns.getForAdmin, { campaignId });
   const updateCampaign = useMutation(api.campaigns.update);
@@ -173,18 +175,22 @@ export function CampaignEditor({ campaignId }: CampaignEditorProps) {
     void persist();
   }, [campaign, initialVisibility, persist, visibility]);
 
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback(async () => {
     if (isDirty()) {
       if (
-        !window.confirm(
-          "Discard unsaved changes and return to the campaign view?",
-        )
+        !(await confirm({
+          title: "Discard changes?",
+          description:
+            "Discard unsaved changes and return to the campaign view?",
+          confirmLabel: "Discard changes",
+          variant: "destructive",
+        }))
       ) {
         return;
       }
     }
     router.push(detailHref);
-  }, [detailHref, isDirty, router]);
+  }, [confirm, detailHref, isDirty, router]);
 
   if (!workspaceId) {
     return (
@@ -292,7 +298,7 @@ export function CampaignEditor({ campaignId }: CampaignEditorProps) {
           <Button
             type="button"
             variant="outline"
-            onClick={handleClose}
+            onClick={() => void handleClose()}
             disabled={saving}
           >
             Close

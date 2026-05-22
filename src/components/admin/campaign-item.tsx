@@ -9,6 +9,7 @@ import { startTransition } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
 import type { CampaignRow } from "@/components/admin/campaign-row";
 import { CampaignVisibilityIcon } from "@/components/campaign-visibility";
+import { useConfirm } from "@/components/confirm-dialog-provider";
 
 export type { CampaignRow } from "@/components/admin/campaign-row";
 
@@ -48,6 +49,7 @@ function CampaignRowActions({
 }) {
   const router = useRouter();
   const { showShareMessage } = useAdmin();
+  const confirm = useConfirm();
   const removeCampaign = useMutation(api.campaigns.remove);
 
   const viewHref = publicCampaignPath(campaign.slug, campaign.workspaceId);
@@ -66,9 +68,12 @@ function CampaignRowActions({
   const handleDelete = async () => {
     if (!showRowDelete) return;
     if (
-      !window.confirm(
-        `Delete "${campaign.name}"? It will be hidden from the campaign list.`,
-      )
+      !(await confirm({
+        title: "Delete campaign?",
+        description: `Delete "${campaign.name}"? It will be hidden from the campaign list.`,
+        confirmLabel: "Delete",
+        variant: "destructive",
+      }))
     ) {
       return;
     }

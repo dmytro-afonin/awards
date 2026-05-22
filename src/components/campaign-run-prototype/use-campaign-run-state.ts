@@ -6,6 +6,7 @@ import {
   type MockCategory,
   pickAutoWinner,
 } from "@/components/campaign-run-prototype/campaign-run-mock";
+import { useConfirm } from "@/components/confirm-dialog-provider";
 
 function sortCategories(categories: MockCategory[]): MockCategory[] {
   return [...categories].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -26,6 +27,7 @@ function countByStatus(
 }
 
 export function useCampaignRunState() {
+  const confirm = useConfirm();
   const [categories, setCategories] = useState(INITIAL_CATEGORIES);
   const [campaignVotingStopped, setCampaignVotingStopped] = useState(false);
   const [focusId, setFocusId] = useState<string | null>(null);
@@ -61,42 +63,51 @@ export function useCampaignRunState() {
     (campaignVotingStopped && votingOpenCount < totalCount);
 
   const confirmOutOfOrderClose = useCallback(
-    (target: MockCategory) => {
+    async (target: MockCategory) => {
       const head = closeVoteHead;
       if (!head || target.id === head.id || target.status !== "voting_open") {
         return true;
       }
-      return window.confirm(
-        `Close voting for "${target.name}" before "${head.name}"?\n\nNo more votes will be accepted for this category.`,
-      );
+      return confirm({
+        title: "Close out of order?",
+        description: `Close voting for "${target.name}" before "${head.name}"?\n\nNo more votes will be accepted for this category.`,
+        confirmLabel: "Close voting",
+      });
     },
-    [closeVoteHead],
+    [closeVoteHead, confirm],
   );
 
   const confirmOutOfOrderReveal = useCallback(
-    (target: MockCategory) => {
+    async (target: MockCategory) => {
       const head = revealHead;
       if (!head || target.id === head.id || target.status !== "voting_closed") {
         return true;
       }
-      return window.confirm(
-        `Reveal winner for "${target.name}" before "${head.name}"?\n\nThe public page will show this winner out of show order.`,
-      );
+      return confirm({
+        title: "Reveal out of order?",
+        description: `Reveal winner for "${target.name}" before "${head.name}"?\n\nThe public page will show this winner out of show order.`,
+        confirmLabel: "Show winner",
+      });
     },
-    [revealHead],
+    [confirm, revealHead],
   );
 
-  const confirmBulkStopVoting = useCallback(() => {
+  const confirmBulkStopVoting = useCallback(async () => {
     if (!hasStartedRunway || votingOpenCount === 0) {
-      return window.confirm(
-        `Stop voting for all ${votingOpenCount} categories still accepting votes?`,
-      );
+      return confirm({
+        title: "Stop all voting?",
+        description: `Stop voting for all ${votingOpenCount} categories still accepting votes?`,
+        confirmLabel: "Stop voting",
+      });
     }
     const done = revealedCount + awaitingRevealCount;
-    return window.confirm(
-      `You've already led ${done} of ${totalCount} categories.\n\nStop voting for the remaining ${votingOpenCount} categories?`,
-    );
+    return confirm({
+      title: "Stop remaining voting?",
+      description: `You've already led ${done} of ${totalCount} categories.\n\nStop voting for the remaining ${votingOpenCount} categories?`,
+      confirmLabel: "Stop voting",
+    });
   }, [
+    confirm,
     hasStartedRunway,
     revealedCount,
     awaitingRevealCount,
@@ -104,16 +115,26 @@ export function useCampaignRunState() {
     votingOpenCount,
   ]);
 
-  const confirmBulkShowWinners = useCallback(() => {
+  const confirmBulkShowWinners = useCallback(async () => {
     if (!hasStartedRunway || awaitingRevealCount === 0) {
-      return window.confirm(
-        `Show winners for all ${awaitingRevealCount} categories with closed voting?`,
-      );
+      return confirm({
+        title: "Show all winners?",
+        description: `Show winners for all ${awaitingRevealCount} categories with closed voting?`,
+        confirmLabel: "Show winners",
+      });
     }
-    return window.confirm(
-      `You've revealed ${revealedCount} of ${totalCount} winners.\n\nShow winners for the remaining ${awaitingRevealCount} categories?`,
-    );
-  }, [hasStartedRunway, revealedCount, awaitingRevealCount, totalCount]);
+    return confirm({
+      title: "Show remaining winners?",
+      description: `You've revealed ${revealedCount} of ${totalCount} winners.\n\nShow winners for the remaining ${awaitingRevealCount} categories?`,
+      confirmLabel: "Show winners",
+    });
+  }, [
+    awaitingRevealCount,
+    confirm,
+    hasStartedRunway,
+    revealedCount,
+    totalCount,
+  ]);
 
   const advanceFocusAfterAction = useCallback(
     (nextCategories: MockCategory[]) => {
@@ -127,10 +148,10 @@ export function useCampaignRunState() {
   );
 
   const closeCategoryVoting = useCallback(
-    (categoryId: string) => {
+    async (categoryId: string) => {
       const target = categories.find((c) => c.id === categoryId);
       if (!target || target.status !== "voting_open") return;
-      if (!confirmOutOfOrderClose(target)) return;
+      if (!(await confirmOutOfOrderClose(target))) return;
 
       const winner = pickAutoWinner(target);
       const next = categories.map((c) =>
@@ -152,10 +173,10 @@ export function useCampaignRunState() {
   );
 
   const revealCategoryWinner = useCallback(
-    (categoryId: string) => {
+    async (categoryId: string) => {
       const target = categories.find((c) => c.id === categoryId);
       if (!target || target.status !== "voting_closed") return;
-      if (!confirmOutOfOrderReveal(target)) return;
+      if (!(await confirmOutOfOrderReveal(target))) return;
 
       const next = categories.map((c) =>
         c.id === categoryId ? { ...c, status: "winner_revealed" as const } : c,
@@ -172,9 +193,9 @@ export function useCampaignRunState() {
     [advanceFocusAfterAction, categories, confirmOutOfOrderReveal],
   );
 
-  const stopCampaignVoting = useCallback(() => {
+  const stopCampaignVoting = useCallback(async () => {
     if (votingOpenCount === 0) return;
-    if (!confirmBulkStopVoting()) return;
+    if (!(await confirmBulkStopVoting())) return;
 
     setCampaignVotingStopped(true);
     const next = categories.map((c) => {
@@ -198,10 +219,10 @@ export function useCampaignRunState() {
     votingOpenCount,
   ]);
 
-  const showAllWinners = useCallback(() => {
+  const showAllWinners = useCallback(async () => {
     if (awaitingRevealCount === 0) return;
     if (votingOpenCount > 0 && !campaignVotingStopped) return;
-    if (!confirmBulkShowWinners()) return;
+    if (!(await confirmBulkShowWinners())) return;
 
     const next = categories.map((c) =>
       c.status === "voting_closed"
