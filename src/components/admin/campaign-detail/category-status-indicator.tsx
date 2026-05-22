@@ -4,6 +4,7 @@ import {
   CATEGORY_STATUS_TONE,
   type CategoryRunStatus,
   categoryStatusLabel,
+  isCategoryRunLifecycle,
 } from "@/lib/category-run";
 import { cn } from "@/lib/utils";
 
@@ -12,12 +13,18 @@ export function CategoryStatusIndicator({
   size = "default",
   showDot = true,
   className,
+  campaignLifecycle,
 }: {
   status: CategoryRunStatus;
   size?: "default" | "compact";
   showDot?: boolean;
   className?: string;
+  campaignLifecycle?: string;
 }) {
+  if (campaignLifecycle && !isCategoryRunLifecycle(campaignLifecycle)) {
+    return null;
+  }
+
   const tone = CATEGORY_STATUS_TONE[status];
 
   return (

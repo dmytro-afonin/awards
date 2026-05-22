@@ -35,6 +35,7 @@ type CampaignMetadataFieldsProps = {
   /** Auto-update slug from name until slug is touched manually */
   autoSlugFromName?: boolean;
   slugTouchedRef?: MutableRefObject<boolean>;
+  workspaceId?: Id<"workspaces">;
   campaignId?: Id<"campaigns">;
   imageUrl?: string | null;
   onImageUpload?: (storageId: Id<"_storage">) => Promise<void>;
@@ -52,6 +53,7 @@ export function CampaignMetadataFields({
   formError = null,
   autoSlugFromName = false,
   slugTouchedRef,
+  workspaceId,
   campaignId,
   imageUrl,
   onImageUpload,
@@ -64,6 +66,12 @@ export function CampaignMetadataFields({
       onSlugChange(slugifyName(value));
     }
   };
+
+  const coverProcessingTarget = campaignId
+    ? { type: "campaign" as const, campaignId }
+    : workspaceId
+      ? { type: "workspace" as const, workspaceId }
+      : null;
 
   return (
     <FieldGroup className="gap-4">
@@ -100,27 +108,18 @@ export function CampaignMetadataFields({
         </FieldContent>
       </Field>
 
-      {showCover && campaignId && onImageUpload && onImageRemove ? (
+      {showCover && coverProcessingTarget && onImageUpload && onImageRemove ? (
         <ImageUploadField
           label="Cover photo"
           description="Shown on the campaign list and cards. Cropped to 16:9."
           imageUrl={imageUrl ?? undefined}
           aspect={16 / 9}
-          previewClassName="w-full"
+          previewClassName="w-full max-w-xs"
           disabled={disabled}
-          processingTarget={{ type: "campaign", campaignId }}
+          processingTarget={coverProcessingTarget}
           onUpload={onImageUpload}
           onRemove={onImageRemove}
         />
-      ) : showCover ? (
-        <Field>
-          <FieldLabel>Cover photo</FieldLabel>
-          <FieldContent>
-            <FieldDescription>
-              You can add a cover photo after creating the campaign.
-            </FieldDescription>
-          </FieldContent>
-        </Field>
       ) : null}
 
       <Field>

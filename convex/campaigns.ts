@@ -25,6 +25,7 @@ import {
 import { syncCampaignContentCounts } from "./lib/campaignReady";
 import { resolveUniqueSlug } from "./lib/campaignSlug";
 import { resolveUniqueCategorySlug } from "./lib/categorySlug";
+import { normalizeCategoryStatus } from "./lib/categoryStatus";
 import { computeAutoWinnerNomineeId } from "./lib/categoryWinner";
 import {
   assertImageStorageObject,
@@ -239,6 +240,7 @@ export const create = mutation({
     description: v.optional(v.string()),
     visibility: v.optional(campaignVisibility),
     slug: v.optional(v.string()),
+    imageStorageId: v.optional(v.id("_storage")),
   },
   returns: v.id("campaigns"),
   handler: async (ctx, args) => {
@@ -268,6 +270,10 @@ export const create = mutation({
     const description = args.description?.trim();
     const visibility = args.visibility ?? "private";
 
+    if (args.imageStorageId) {
+      await assertImageStorageObject(ctx, args.imageStorageId);
+    }
+
     return await ctx.db.insert("campaigns", {
       workspaceId: args.workspaceId,
       name,
@@ -278,6 +284,8 @@ export const create = mutation({
       lifecycle: "draft",
       categoryCount: 0,
       nomineeCount: 0,
+      imageStorageId: args.imageStorageId,
+      imageUrl: undefined,
     });
   },
 });
@@ -499,6 +507,26 @@ export const finishCampaign = mutation({
     await requireAdminMembership(ctx, raw.workspaceId);
     const doc = await patchCampaignLifecycleIfLegacy(ctx, raw);
     await assertCanFinishCampaign(ctx, doc);
+
+    const categories = await ctx.db
+      .query("campaignCategories")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
+
+    for (const category of categories) {
+      if (
+        normalizeCategoryStatus(category.categoryStatus) !== "voting_closed"
+      ) {
+        continue;
+      }
+      if (!category.winnerNomineeId) {
+        throw new Error(
+          `Category "${category.name}" has no winner to publish.`,
+        );
+      }
+      await ctx.db.patch(category._id, { categoryStatus: "finished" });
+    }
+
     await ctx.db.patch(args.campaignId, { lifecycle: "finished" });
     return null;
   },

@@ -2,12 +2,36 @@
 
 import { SignInButton, useAuth } from "@clerk/nextjs";
 import Link from "next/link";
+import { Suspense } from "react";
 import { PublicShell } from "@/components/public/public-shell";
 import { PublicSitePage } from "@/components/public/public-site-page";
+import { useAuthRedirectTarget } from "@/lib/auth-redirect";
+
+function HomeSignInButton() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const redirectTarget = useAuthRedirectTarget();
+
+  if (!isLoaded || isSignedIn) {
+    return null;
+  }
+
+  return (
+    <SignInButton
+      mode="modal"
+      forceRedirectUrl={redirectTarget}
+      signUpForceRedirectUrl={redirectTarget}
+    >
+      <button
+        type="button"
+        className="border border-zinc-600 px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] text-zinc-300 hover:border-amber-500/50 hover:text-amber-300"
+      >
+        Sign in to vote
+      </button>
+    </SignInButton>
+  );
+}
 
 export default function HomePage() {
-  const { isLoaded, isSignedIn } = useAuth();
-
   return (
     <PublicShell>
       <section className="relative overflow-hidden border-b border-zinc-800 -mx-4 px-4 py-16 md:-mx-6 md:px-6 md:py-24 lg:-mx-8 lg:px-8">
@@ -31,16 +55,9 @@ export default function HomePage() {
             >
               Explore campaigns
             </Link>
-            {isLoaded && !isSignedIn ? (
-              <SignInButton mode="modal">
-                <button
-                  type="button"
-                  className="border border-zinc-600 px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] text-zinc-300 hover:border-amber-500/50 hover:text-amber-300"
-                >
-                  Sign in to vote
-                </button>
-              </SignInButton>
-            ) : null}
+            <Suspense fallback={null}>
+              <HomeSignInButton />
+            </Suspense>
           </div>
         </div>
       </section>

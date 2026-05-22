@@ -1,11 +1,17 @@
 import type { api } from "@cvx/_generated/api";
 import type { FunctionReturnType } from "convex/server";
+import { normalizeCampaignLifecycle } from "@/lib/campaign-lifecycle";
 
 export type CategoryOverview = FunctionReturnType<
   typeof api.campaignCategories.overviewForAdmin
 >[number];
 
 export type CategoryRunStatus = CategoryOverview["categoryStatus"];
+
+export function isCategoryRunLifecycle(lifecycle: string): boolean {
+  const state = normalizeCampaignLifecycle(lifecycle);
+  return state === "vote_live" || state === "vote_ended";
+}
 
 export function categoryStatusLabel(status: CategoryRunStatus): string {
   switch (status) {
@@ -96,6 +102,15 @@ export function countCategoriesByStatus(
   status: CategoryRunStatus,
 ): number {
   return categories.filter((c) => c.categoryStatus === status).length;
+}
+
+export function hasUnrevealedCategoryWinners(
+  categories: CategoryOverview[],
+): boolean {
+  if (categories.length === 0) {
+    return false;
+  }
+  return countCategoriesByStatus(categories, "finished") < categories.length;
 }
 
 export function firstCategoryWithStatus(

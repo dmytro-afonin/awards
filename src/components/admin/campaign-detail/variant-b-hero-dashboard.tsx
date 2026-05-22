@@ -82,6 +82,9 @@ export function CampaignDetailVariantB({
               canLaunch={readiness.canLaunch}
               categoryCount={readiness.categoryCount}
               categories={readiness.categories}
+              campaignId={campaignId}
+              campaignName={campaign.name}
+              lifecycle={campaign.lifecycle}
             />
           </div>
 

@@ -14,6 +14,8 @@ async function getWorkspaceIdForTarget(
   target: ImageProcessingTarget,
 ): Promise<Id<"workspaces">> {
   switch (target.type) {
+    case "workspace":
+      return target.workspaceId;
     case "campaign": {
       const doc = await ctx.db.get(target.campaignId);
       if (!doc) {

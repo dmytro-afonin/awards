@@ -1,6 +1,7 @@
 import type { Id } from "@cvx/_generated/dataModel";
 
 export type ImageProcessingTarget =
+  | { type: "workspace"; workspaceId: Id<"workspaces"> }
   | { type: "campaign"; campaignId: Id<"campaigns"> }
   | { type: "category"; categoryId: Id<"campaignCategories"> }
   | { type: "nominee"; nomineeId: Id<"campaignNominees"> };
@@ -13,6 +14,13 @@ export function parseImageProcessingTarget(
   }
   const value = raw as Record<string, unknown>;
   switch (value.type) {
+    case "workspace":
+      return typeof value.workspaceId === "string"
+        ? {
+            type: "workspace",
+            workspaceId: value.workspaceId as Id<"workspaces">,
+          }
+        : null;
     case "campaign":
       return typeof value.campaignId === "string"
         ? { type: "campaign", campaignId: value.campaignId as Id<"campaigns"> }
