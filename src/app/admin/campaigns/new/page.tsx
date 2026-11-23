@@ -74,13 +74,22 @@ export default function AdminNewCampaignPage() {
           /* prior staged file may already be linked or deleted */
         });
       }
-      const url = await getStagedImageDownloadUrl({ storageId });
+      // Take ownership before awaiting the URL: leaving during that request
+      // must still abandon the just-uploaded file.
       stagedCoverRef.current = storageId;
+      let url: string;
+      try {
+        url = await getStagedImageDownloadUrl({ storageId });
+      } catch (error) {
+        abandonCover();
+        throw error;
+      }
       setCoverStorageId(storageId);
       setCoverPreviewUrl(url);
       showShareMessage("Cover photo added");
     },
     [
+      abandonCover,
       abandonStagedImage,
       coverStorageId,
       getStagedImageDownloadUrl,
@@ -117,6 +126,10 @@ export default function AdminNewCampaignPage() {
 
     setFormError(null);
     setCreating(true);
+    // Hand ownership to the mutation before it runs. If the page unmounts
+    // mid-request, cleanup must not delete a file the mutation may have linked.
+    const coverToLink = stagedCoverRef.current;
+    stagedCoverRef.current = null;
     try {
       const id = await createCampaign({
         workspaceId,
@@ -126,11 +139,11 @@ export default function AdminNewCampaignPage() {
         visibility,
         imageStorageId: coverStorageId ?? undefined,
       });
-      // The cover is now linked to the campaign; do not abandon it on unmount.
-      stagedCoverRef.current = null;
       showShareMessage("Campaign created");
       router.replace(`/admin/campaigns/${id}`);
     } catch (error) {
+      // No campaign was created, so the file is still ours to clean up.
+      if (coverToLink) stagedCoverRef.current = coverToLink;
       const message =
         error instanceof Error ? error.message : "Could not create campaign.";
       setFormError(message);
