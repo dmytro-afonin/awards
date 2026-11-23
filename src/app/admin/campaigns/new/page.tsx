@@ -4,7 +4,7 @@ import { api } from "@cvx/_generated/api";
 import type { Id } from "@cvx/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
 import { CampaignMetadataFields } from "@/components/admin/campaign-metadata-fields";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,21 @@ export default function AdminNewCampaignPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const slugTouchedRef = useRef(false);
+  const stagedCoverRef = useRef<Id<"_storage"> | null>(null);
+
+  const abandonCover = useCallback(() => {
+    const storageId = stagedCoverRef.current;
+    stagedCoverRef.current = null;
+    if (storageId) {
+      void abandonStagedImage({ storageId }).catch(() => {
+        /* Staged file may already be linked or deleted */
+      });
+    }
+  }, [abandonStagedImage]);
+
+  // Abandon a cover that was staged but never linked to a campaign when the
+  // form is left via navigation, back button, or refresh.
+  useEffect(() => abandonCover, [abandonCover]);
 
   const handleSlugChange = useCallback((value: string) => {
     slugTouchedRef.current = true;
@@ -60,6 +75,7 @@ export default function AdminNewCampaignPage() {
         });
       }
       const url = await getStagedImageDownloadUrl({ storageId });
+      stagedCoverRef.current = storageId;
       setCoverStorageId(storageId);
       setCoverPreviewUrl(url);
       showShareMessage("Cover photo added");
@@ -73,13 +89,15 @@ export default function AdminNewCampaignPage() {
   );
 
   const handleCoverRemove = useCallback(async () => {
-    if (coverStorageId) {
-      await abandonStagedImage({ storageId: coverStorageId });
+    const storageId = stagedCoverRef.current;
+    stagedCoverRef.current = null;
+    if (storageId) {
+      await abandonStagedImage({ storageId });
     }
     setCoverStorageId(null);
     setCoverPreviewUrl(null);
     showShareMessage("Cover photo removed");
-  }, [abandonStagedImage, coverStorageId, showShareMessage]);
+  }, [abandonStagedImage, showShareMessage]);
 
   const handleCreate = useCallback(async () => {
     const trimmed = name.trim();
@@ -108,6 +126,8 @@ export default function AdminNewCampaignPage() {
         visibility,
         imageStorageId: coverStorageId ?? undefined,
       });
+      // The cover is now linked to the campaign; do not abandon it on unmount.
+      stagedCoverRef.current = null;
       showShareMessage("Campaign created");
       router.replace(`/admin/campaigns/${id}`);
     } catch (error) {
@@ -130,8 +150,9 @@ export default function AdminNewCampaignPage() {
   ]);
 
   const handleCancel = useCallback(() => {
+    abandonCover();
     router.push("/admin");
-  }, [router]);
+  }, [abandonCover, router]);
 
   if (!workspaceId) {
     return (
