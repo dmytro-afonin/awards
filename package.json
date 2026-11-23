@@ -15,7 +15,8 @@
     "convex:migrate": "convex run migrations:runAll",
     "convex:migrate:prod": "convex run migrations:runAll --prod",
     "convex:migrate:status": "convex run --component migrations lib:getStatus",
-    "prepare": "husky"
+    "prepare": "husky",
+    "deps:scan": "pnpm audit --audit-level=high"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
