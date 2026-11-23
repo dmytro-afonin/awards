@@ -2,11 +2,11 @@
   "name": "awards",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "bun@1.3.11",
+  "packageManager": "pnpm@12.21.0",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "deploy:production": "convex deploy --cmd 'bun run build'",
+    "deploy:production": "convex deploy --cmd 'pnpm run build'",
     "start": "next start",
     "check": "biome check --write .",
     "typecheck": "tsc --noEmit",
@@ -15,7 +15,8 @@
     "convex:migrate": "convex run migrations:runAll",
     "convex:migrate:prod": "convex run migrations:runAll --prod",
     "convex:migrate:status": "convex run --component migrations lib:getStatus",
-    "prepare": "husky"
+    "prepare": "husky",
+    "deps:scan": "pnpm audit --audit-level=high"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -48,14 +49,6 @@
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3"
   },
-  "ignoreScripts": [
-    "sharp",
-    "unrs-resolver"
-  ],
-  "trustedDependencies": [
-    "sharp",
-    "unrs-resolver"
-  ],
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css}": [
       "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"

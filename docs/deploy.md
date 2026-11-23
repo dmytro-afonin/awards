@@ -7,13 +7,13 @@ Production uses **Vercel** for the Next.js app and **Convex Cloud** for the back
 The repo sets this in `vercel.json`:
 
 ```bash
-bun run deploy:production
+pnpm run deploy:production
 ```
 
 Which runs:
 
 ```bash
-convex deploy --cmd 'bun run build'
+convex deploy --cmd 'pnpm run build'
 ```
 
 That builds Next.js, then pushes Convex functions/schema. Vercel authenticates to Convex with **`CONVEX_DEPLOY_KEY`** (a deploy/service token).
@@ -36,29 +36,29 @@ This repo uses the official [`@convex-dev/migrations`](https://www.convex.dev/co
 
 ```bash
 # Dev deployment
-bun run convex:migrate
+pnpm run convex:migrate
 
 # Production (clear CONVEX_DEPLOY_KEY if your .env.local points at dev)
-CONVEX_DEPLOY_KEY= bun run convex:migrate:prod
+CONVEX_DEPLOY_KEY= pnpm run convex:migrate:prod
 ```
 
 ### Check migration status
 
 ```bash
-bun run convex:migrate:status
+pnpm run convex:migrate:status
 ```
 
 ### Verify category slug backfill
 
 ```bash
-CONVEX_DEPLOY_KEY= npx convex run migrations:categorySlugMigrationStatus --prod
+CONVEX_DEPLOY_KEY= pnpm exec convex run migrations:categorySlugMigrationStatus --prod
 # { "missingSlugCount": 0 } → all categories have slugs
 ```
 
 ## Local production dry-run
 
 ```bash
-bun run deploy:production
+pnpm run deploy:production
 ```
 
 Uses `CONVEX_DEPLOY_KEY` if set, otherwise your logged-in Convex CLI session.

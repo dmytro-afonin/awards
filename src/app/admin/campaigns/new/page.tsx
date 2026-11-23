@@ -4,7 +4,7 @@ import { api } from "@cvx/_generated/api";
 import type { Id } from "@cvx/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAdmin } from "@/components/admin/admin-context";
 import { CampaignMetadataFields } from "@/components/admin/campaign-metadata-fields";
 import { Button } from "@/components/ui/button";
@@ -39,13 +39,25 @@ export default function AdminNewCampaignPage() {
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<CampaignVisibility>("private");
-  const [coverStorageId, setCoverStorageId] = useState<Id<"_storage"> | null>(
-    null,
-  );
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const slugTouchedRef = useRef(false);
+  const stagedCoverRef = useRef<Id<"_storage"> | null>(null);
+
+  const abandonCover = useCallback(() => {
+    const storageId = stagedCoverRef.current;
+    stagedCoverRef.current = null;
+    if (storageId) {
+      void abandonStagedImage({ storageId }).catch(() => {
+        /* Staged file may already be linked or deleted */
+      });
+    }
+  }, [abandonStagedImage]);
+
+  // Abandon a cover that was staged but never linked to a campaign when the
+  // form is left via navigation, back button, or refresh.
+  useEffect(() => abandonCover, [abandonCover]);
 
   const handleSlugChange = useCallback((value: string) => {
     slugTouchedRef.current = true;
@@ -54,32 +66,47 @@ export default function AdminNewCampaignPage() {
 
   const handleCoverUpload = useCallback(
     async (storageId: Id<"_storage">) => {
-      if (coverStorageId && coverStorageId !== storageId) {
-        void abandonStagedImage({ storageId: coverStorageId }).catch(() => {
+      // The ref tracks the in-flight upload too; state can still be stale.
+      const previous = stagedCoverRef.current;
+      if (previous && previous !== storageId) {
+        void abandonStagedImage({ storageId: previous }).catch(() => {
           /* prior staged file may already be linked or deleted */
         });
       }
-      const url = await getStagedImageDownloadUrl({ storageId });
-      setCoverStorageId(storageId);
+      // Take ownership before awaiting the URL: leaving during that request
+      // must still abandon the just-uploaded file.
+      stagedCoverRef.current = storageId;
+      let url: string;
+      try {
+        url = await getStagedImageDownloadUrl({ storageId });
+      } catch (error) {
+        // The replacement failed and its file was abandoned, so clear the
+        // preview of the previous cover too; it is no longer linked to this
+        // form and createCampaign would submit no cover.
+        abandonCover();
+        setCoverPreviewUrl(null);
+        throw error;
+      }
       setCoverPreviewUrl(url);
       showShareMessage("Cover photo added");
     },
     [
+      abandonCover,
       abandonStagedImage,
-      coverStorageId,
       getStagedImageDownloadUrl,
       showShareMessage,
     ],
   );
 
   const handleCoverRemove = useCallback(async () => {
-    if (coverStorageId) {
-      await abandonStagedImage({ storageId: coverStorageId });
+    const storageId = stagedCoverRef.current;
+    stagedCoverRef.current = null;
+    if (storageId) {
+      await abandonStagedImage({ storageId });
     }
-    setCoverStorageId(null);
     setCoverPreviewUrl(null);
     showShareMessage("Cover photo removed");
-  }, [abandonStagedImage, coverStorageId, showShareMessage]);
+  }, [abandonStagedImage, showShareMessage]);
 
   const handleCreate = useCallback(async () => {
     const trimmed = name.trim();
@@ -99,6 +126,10 @@ export default function AdminNewCampaignPage() {
 
     setFormError(null);
     setCreating(true);
+    // Hand ownership to the mutation before it runs. If the page unmounts
+    // mid-request, cleanup must not delete a file the mutation may have linked.
+    const coverToLink = stagedCoverRef.current;
+    stagedCoverRef.current = null;
     try {
       const id = await createCampaign({
         workspaceId,
@@ -106,11 +137,14 @@ export default function AdminNewCampaignPage() {
         slug: trimmedSlug,
         description: description.trim() || undefined,
         visibility,
-        imageStorageId: coverStorageId ?? undefined,
+        // Use the ref, not state: state lags while a cover URL is loading.
+        imageStorageId: coverToLink ?? undefined,
       });
       showShareMessage("Campaign created");
       router.replace(`/admin/campaigns/${id}`);
     } catch (error) {
+      // No campaign was created, so the file is still ours to clean up.
+      if (coverToLink) stagedCoverRef.current = coverToLink;
       const message =
         error instanceof Error ? error.message : "Could not create campaign.";
       setFormError(message);
@@ -123,15 +157,15 @@ export default function AdminNewCampaignPage() {
     description,
     visibility,
     workspaceId,
-    coverStorageId,
     createCampaign,
     router,
     showShareMessage,
   ]);
 
   const handleCancel = useCallback(() => {
+    abandonCover();
     router.push("/admin");
-  }, [router]);
+  }, [abandonCover, router]);
 
   if (!workspaceId) {
     return (
