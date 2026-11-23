@@ -23,7 +23,7 @@ export function Providers({ children }: { children: ReactNode }) {
           or <code className="font-mono">NEXT_PUBLIC_CONVEX_URL</code>. Copy{" "}
           <code className="font-mono">.env.example</code> to{" "}
           <code className="font-mono">.env.local</code> and run{" "}
-          <code className="font-mono">bunx convex dev</code>.
+          <code className="font-mono">pnpm exec convex dev</code>.
         </p>
       </div>
     );

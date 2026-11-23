@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bun run deploy:production",
+  "buildCommand": "pnpm run deploy:production",
   "functions": {
     "src/app/api/images/preview/route.ts": {
       "maxDuration": 60
