@@ -4,7 +4,7 @@ Next.js app with **Convex** and **Clerk**. Product direction and wireframes live
 
 ## Prerequisites
 
-- [Bun](https://bun.sh)
+- [pnpm](https://pnpm.io)
 - A [Convex](https://convex.dev) deployment (local dev is fine)
 - A [Clerk](https://clerk.com) application
 
@@ -15,7 +15,7 @@ Next.js app with **Convex** and **Clerk**. Product direction and wireframes live
 2. Start Convex (links a deployment and can set `NEXT_PUBLIC_CONVEX_URL`):
 
    ```bash
-   bunx convex dev
+   pnpm exec convex dev
    ```
 
 3. In the Clerk dashboard, add a JWT template named **`convex`** for Convex, and set **`CLERK_JWT_ISSUER_DOMAIN`** in the Convex dashboard to your Clerk Frontend API issuer host (see the [Convex + Clerk](https://docs.convex.dev/auth/clerk) docs).
@@ -23,8 +23,8 @@ Next.js app with **Convex** and **Clerk**. Product direction and wireframes live
 4. Install and run the app:
 
    ```bash
-   bun install
-   bun dev
+   pnpm install
+   pnpm dev
    ```
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
@@ -33,16 +33,16 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
 
 | Command | Description |
 |--------|-------------|
-| `bun dev` | Next.js dev server (Turbopack) |
-| `bun run convex:dev` | Convex dev / sync functions |
-| `bun run build` | Production build |
-| `bun run check` | Biome check (write) |
-| `bun run typecheck` | TypeScript (`tsc --noEmit`) |
-| `bun run convex:codegen` | Regenerate `convex/_generated` types |
-| `bun run deploy:production` | Vercel/CI: Convex deploy + Next build (no data migrations) |
-| `bun run convex:migrate` | Run pending Convex data migrations (dev) |
-| `bun run convex:migrate:prod` | Run pending migrations on prod (`CONVEX_DEPLOY_KEY=` if needed) |
-| `bun run convex:migrate:status` | Show migration component status |
+| `pnpm dev` | Next.js dev server (Turbopack) |
+| `pnpm run convex:dev` | Convex dev / sync functions |
+| `pnpm run build` | Production build |
+| `pnpm run check` | Biome check (write) |
+| `pnpm run typecheck` | TypeScript (`tsc --noEmit`) |
+| `pnpm run convex:codegen` | Regenerate `convex/_generated` types |
+| `pnpm run deploy:production` | Vercel/CI: Convex deploy + Next build (no data migrations) |
+| `pnpm run convex:migrate` | Run pending Convex data migrations (dev) |
+| `pnpm run convex:migrate:prod` | Run pending migrations on prod (`CONVEX_DEPLOY_KEY=` if needed) |
+| `pnpm run convex:migrate:status` | Show migration component status |
 
 ## Deploy (Vercel)
 
@@ -51,10 +51,10 @@ See **[docs/deploy.md](docs/deploy.md)** for the full checklist.
 Summary:
 
 1. Set Clerk + Convex env vars on Vercel (including `CONVEX_DEPLOY_KEY` for prod deploys).
-2. Vercel uses `bun run deploy:production` from `vercel.json` — Convex deploy + Next.js build only.
+2. Vercel uses `pnpm run deploy:production` from `vercel.json` — Convex deploy + Next.js build only.
 3. After deploy, run data migrations **locally** when needed (deploy keys cannot run mutations):
 
    ```bash
-   CONVEX_DEPLOY_KEY= bun run convex:migrate:prod
-   bun run convex:migrate:status
+   CONVEX_DEPLOY_KEY= pnpm run convex:migrate:prod
+   pnpm run convex:migrate:status
    ```

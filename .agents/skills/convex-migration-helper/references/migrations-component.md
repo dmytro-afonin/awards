@@ -7,7 +7,7 @@ component for batched, resumable Convex data migrations.
 ## Installation
 
 ```bash
-npm install @convex-dev/migrations
+pnpm install @convex-dev/migrations
 ```
 
 ## Setup
@@ -68,10 +68,10 @@ From the CLI:
 ```bash
 # Define a one-off runner in convex/migrations.ts:
 #   export const runIt = migrations.runner(internal.migrations.addDefaultRole);
-npx convex run migrations:runIt
+pnpm exec convex run migrations:runIt
 
 # Or use the general-purpose runner
-npx convex run migrations:run '{"fn": "migrations:addDefaultRole"}'
+pnpm exec convex run migrations:run '{"fn": "migrations:addDefaultRole"}'
 ```
 
 Programmatically from another Convex function:
@@ -91,7 +91,7 @@ export const runAll = migrations.runner([
 ```
 
 ```bash
-npx convex run migrations:runAll
+pnpm exec convex run migrations:runAll
 ```
 
 If one fails, it stops and will not continue to the next. Call it again to retry
@@ -102,7 +102,7 @@ from where it left off. Completed migrations are skipped automatically.
 Test a migration before committing changes:
 
 ```bash
-npx convex run migrations:runIt '{"dryRun": true}'
+pnpm exec convex run migrations:runIt '{"dryRun": true}'
 ```
 
 This runs one batch and then rolls back, so you can see what it would do without
@@ -111,13 +111,13 @@ changing any data.
 ## Check Migration Status
 
 ```bash
-npx convex run --component migrations lib:getStatus --watch
+pnpm exec convex run --component migrations lib:getStatus --watch
 ```
 
 ## Cancel a Running Migration
 
 ```bash
-npx convex run --component migrations lib:cancel '{"name": "migrations:addDefaultRole"}'
+pnpm exec convex run --component migrations lib:cancel '{"name": "migrations:addDefaultRole"}'
 ```
 
 Or programmatically:
@@ -131,7 +131,7 @@ await migrations.cancel(ctx, internal.migrations.addDefaultRole);
 Chain migration execution after deploying:
 
 ```bash
-npx convex deploy --cmd 'npm run build' && npx convex run migrations:runAll --prod
+pnpm exec convex deploy --cmd 'pnpm run build' && pnpm exec convex run migrations:runAll --prod
 ```
 
 ## Configuration Options

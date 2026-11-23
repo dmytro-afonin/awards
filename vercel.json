@@ -1,5 +1,6 @@
 {
-  "buildCommand": "bun run deploy:production",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm run deploy:production",
   "functions": {
     "src/app/api/images/preview/route.ts": {
       "maxDuration": 60
