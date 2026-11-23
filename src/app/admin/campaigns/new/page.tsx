@@ -80,7 +80,11 @@ export default function AdminNewCampaignPage() {
       try {
         url = await getStagedImageDownloadUrl({ storageId });
       } catch (error) {
+        // The replacement failed and its file was abandoned, so clear the
+        // preview of the previous cover too; it is no longer linked to this
+        // form and createCampaign would submit no cover.
         abandonCover();
+        setCoverPreviewUrl(null);
         throw error;
       }
       setCoverPreviewUrl(url);
