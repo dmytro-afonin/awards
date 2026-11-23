@@ -39,9 +39,6 @@ export default function AdminNewCampaignPage() {
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<CampaignVisibility>("private");
-  const [coverStorageId, setCoverStorageId] = useState<Id<"_storage"> | null>(
-    null,
-  );
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -69,8 +66,10 @@ export default function AdminNewCampaignPage() {
 
   const handleCoverUpload = useCallback(
     async (storageId: Id<"_storage">) => {
-      if (coverStorageId && coverStorageId !== storageId) {
-        void abandonStagedImage({ storageId: coverStorageId }).catch(() => {
+      // The ref tracks the in-flight upload too; state can still be stale.
+      const previous = stagedCoverRef.current;
+      if (previous && previous !== storageId) {
+        void abandonStagedImage({ storageId: previous }).catch(() => {
           /* prior staged file may already be linked or deleted */
         });
       }
@@ -84,14 +83,12 @@ export default function AdminNewCampaignPage() {
         abandonCover();
         throw error;
       }
-      setCoverStorageId(storageId);
       setCoverPreviewUrl(url);
       showShareMessage("Cover photo added");
     },
     [
       abandonCover,
       abandonStagedImage,
-      coverStorageId,
       getStagedImageDownloadUrl,
       showShareMessage,
     ],
@@ -103,7 +100,6 @@ export default function AdminNewCampaignPage() {
     if (storageId) {
       await abandonStagedImage({ storageId });
     }
-    setCoverStorageId(null);
     setCoverPreviewUrl(null);
     showShareMessage("Cover photo removed");
   }, [abandonStagedImage, showShareMessage]);
@@ -137,7 +133,8 @@ export default function AdminNewCampaignPage() {
         slug: trimmedSlug,
         description: description.trim() || undefined,
         visibility,
-        imageStorageId: coverStorageId ?? undefined,
+        // Use the ref, not state: state lags while a cover URL is loading.
+        imageStorageId: coverToLink ?? undefined,
       });
       showShareMessage("Campaign created");
       router.replace(`/admin/campaigns/${id}`);
@@ -156,7 +153,6 @@ export default function AdminNewCampaignPage() {
     description,
     visibility,
     workspaceId,
-    coverStorageId,
     createCampaign,
     router,
     showShareMessage,
